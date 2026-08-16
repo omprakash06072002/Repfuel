@@ -9,7 +9,7 @@ const EXERCISES = {
   Cardio:[['Treadmill — Walking','treadmill','treadmill_walk'],['Treadmill — Running','treadmill','treadmill_run'],['Treadmill — Incline Walking','treadmill','treadmill_incline_walk'],['Stationary Bike','bike','bike_stationary'],['Spin Bike','bike','spin_bike'],['Elliptical / Cross Trainer','machine','elliptical'],['StairMaster','machine','stair_climber'],['Rowing Machine','machine','rower'],['Air Bike','bike','air_bike'],['SkiErg','machine','skierg']]
 };
 
-const MODEL_VERSION='1.3.0';
+const MODEL_VERSION='1.3.1';
 const REST_MET=1.5;
 const BASE_MET={
  heavy_compound:5.5,db_compound:5.0,machine_compound:4.2,isolation:3.7,
@@ -293,7 +293,7 @@ function finishExercise(){
   const r=estimate(state.exercise,state.sets);
   state.exercises.push({exercise:state.exercise,sets:[...state.sets],result:r});
   saveEvent(state.exercise,r);
-  state.sets=[];state.draft=null;renderSets();$('finishExercise').disabled=true;$('startSet').disabled=true;$('finishSet').disabled=true;$('addSet').disabled=true;renderSummary();
+  state.sets=[];state.draft=null;renderSets();renderLiveStats();renderLiveStats();$('finishExercise').disabled=true;$('startSet').disabled=true;$('finishSet').disabled=true;$('addSet').disabled=true;renderSummary();
 }
 function finishWorkout(){
   if(state.setStart) finishSet();
@@ -305,7 +305,17 @@ function finishWorkout(){
   $('workoutComplete').classList.remove('hidden');$('workoutComplete').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function startAnotherWorkout(){location.reload()}
+function renderLiveStats(){
+  const exercises=state.exercises||[];
+  const sets=exercises.flatMap(x=>x.sets||[]);
+  const volume=sets.reduce((a,x)=>a+(x.load||0)*(x.reps||0),0);
+  const active=sets.reduce((a,x)=>a+(x.active||0),0);
+  const kcal=exercises.reduce((a,x)=>a+(x.result?.net||0),0);
+  const ids=[['liveVolume',`${Math.round(volume).toLocaleString()} kg`],['liveActive',`${fmt(active/60)} min`],['liveSets',`${sets.length}`],['liveKcal',`${Math.round(kcal)} kcal`],['sideExercises',`${exercises.length}`],['sideSets',`${sets.length}`],['sideVolume',`${Math.round(volume).toLocaleString()} kg`],['sideKcal',`${Math.round(kcal)} kcal`]];
+  ids.forEach(([id,v])=>{const el=$(id);if(el)el.textContent=v});
+}
 function renderSummary(){
+  renderLiveStats();
   const low=state.exercises.reduce((a,x)=>a+x.result.low,0),high=state.exercises.reduce((a,x)=>a+x.result.high,0);
   const vol=state.exercises.reduce((a,x)=>a+x.result.volume,0),active=state.exercises.reduce((a,x)=>a+x.result.active,0);
   $('sumKcal').textContent=`${Math.round(low)}–${Math.round(high)}`;
