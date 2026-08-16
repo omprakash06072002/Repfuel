@@ -26,6 +26,7 @@ async function initDb() {
       id BIGSERIAL PRIMARY KEY,
       session_id TEXT NOT NULL,
       workout_id TEXT,
+      training_level TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       body_weight_kg REAL,
       height_cm REAL,
@@ -51,6 +52,7 @@ async function initDb() {
     );
   `);
   await pool.query(`ALTER TABLE workout_events ADD COLUMN IF NOT EXISTS workout_id TEXT`);
+  await pool.query(`ALTER TABLE workout_events ADD COLUMN IF NOT EXISTS training_level TEXT`);
   await pool.query(`ALTER TABLE workout_events ADD COLUMN IF NOT EXISTS body_fat_percent REAL`);
   await pool.query(`ALTER TABLE workout_events ADD COLUMN IF NOT EXISTS published_anchor_kcal REAL`);
 }
@@ -69,12 +71,12 @@ app.post('/api/workout-event', async (req, res) => {
   try {
     await pool.query(`
       INSERT INTO workout_events
-      (session_id, workout_id, body_weight_kg, height_cm, age_years, sex, body_part, exercise, equipment,
+      (session_id, workout_id, training_level, body_weight_kg, height_cm, age_years, sex, body_part, exercise, equipment,
        exercise_family, body_fat_percent, published_anchor_kcal, load_kg, reps, sets, active_seconds, rest_seconds, total_volume_kg,
        estimated_net_kcal, estimate_low_kcal, estimate_high_kcal, model_version, consent)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
     `, [
-      String(d.sessionId).slice(0, 80), String(d.workoutId || '').slice(0, 80), d.bodyWeightKg ?? null, d.heightCm ?? null, d.ageYears ?? null,
+      String(d.sessionId).slice(0, 80), String(d.workoutId || '').slice(0, 80), String(d.trainingLevel || '').slice(0, 30), d.bodyWeightKg ?? null, d.heightCm ?? null, d.ageYears ?? null,
       d.sex ?? null, d.bodyPart ?? null, String(d.exercise).slice(0, 120), d.equipment ?? null,
       d.exerciseFamily ?? null, d.bodyFatPercent ?? null, d.publishedAnchorKcal ?? null, d.loadKg ?? null, d.reps ?? null, d.sets ?? null,
       d.activeSeconds ?? null, d.restSeconds ?? null, d.totalVolumeKg ?? null,

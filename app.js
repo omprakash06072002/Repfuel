@@ -9,7 +9,7 @@ const EXERCISES = {
   Cardio:[['Treadmill — Walking','treadmill','treadmill_walk'],['Treadmill — Running','treadmill','treadmill_run'],['Treadmill — Incline Walking','treadmill','treadmill_incline_walk'],['Stationary Bike','bike','bike_stationary'],['Spin Bike','bike','spin_bike'],['Elliptical / Cross Trainer','machine','elliptical'],['StairMaster','machine','stair_climber'],['Rowing Machine','machine','rower'],['Air Bike','bike','air_bike'],['SkiErg','machine','skierg']]
 };
 
-const MODEL_VERSION='1.1.2';
+const MODEL_VERSION='1.2.0';
 const REST_MET=1.5;
 const BASE_MET={
  heavy_compound:5.5,db_compound:5.0,machine_compound:4.2,isolation:3.7,
@@ -47,13 +47,21 @@ function renderHistory(){
   $('historySets').textContent=h.reduce((a,x)=>a+(x.sets||0),0);
 }
 
+
+function exerciseVisual(e){
+  const family=(e.family||'').toLowerCase();
+  let icon='🏋️', motion='↕';
+  if(family.includes('cardio')){icon='🏃';motion='→'}
+  else if(family.includes('bodyweight')){icon='🤸';motion='↕'}
+  else if(family.includes('cable')){icon='🪢';motion='↔'}
+  return `<div class="exercise-art" aria-label="${e.name} exercise illustration">
+    <div class="art-grid"></div><div class="art-person">${icon}</div><div class="art-arrow">${motion}</div>
+    <div class="art-label">${e.equipment||'Exercise'}</div>
+  </div>`;
+}
 function renderParts(){
-  $('bodyParts').innerHTML=Object.keys(EXERCISES).map(p=>`<button class="chip ${state.parts.includes(p)?'active':''}" data-part="${p}">${p}</button>`).join('');
-  document.querySelectorAll('[data-part]').forEach(b=>b.onclick=()=>{
-    const p=b.dataset.part;
-    state.parts=state.parts.includes(p)?state.parts.filter(x=>x!==p):state.parts.length<3?[...state.parts,p]:state.parts;
-    renderParts();renderExercises();
-  });
+  $('bodyParts').innerHTML=state.parts.map(p=>`<button class="chip ${state.selectedParts?.includes(p)?'active':''}" data-part="${p}">${p}</button>`).join('');
+  document.querySelectorAll('#bodyParts .chip').forEach(b=>b.onclick=()=>selectPart(b.dataset.part));
 }
 function renderExercises(){
   state.exerciseOptions=state.parts.flatMap(p=>EXERCISES[p].map(e=>({bodyPart:p,name:e[0],equipment:e[1],family:e[2]})));
@@ -87,7 +95,7 @@ function addSet(){
   if(!cardio&&!reps)return;
   // IMPORTANT: load is captured independently for THIS set.
   // The user can change the load before every subsequent set.
-  const load=cardio?0:Number($('load').value||0);
+  const load=cardio?0:Number($('load').value===''?0:$('load').value);
   state.sets.push({...state.draft,reps,load});
   state.draft=null;
   $('reps').value='';
@@ -112,7 +120,7 @@ function renderSets(){
 }
 function epley(load,reps){return load>0&&reps>0?load*(1+reps/30):0}
 function profile(){
-  return {age:+$('age').value||0,sex:$('sex').value,height:+$('height').value||0,weight:+$('bodyWeight').value||0,bodyFat:$('bodyFat').value===''?null:+$('bodyFat').value,consent:$('consent').checked};
+  return {age:+$('age').value||0,sex:$('sex').value,height:+$('height').value||0,weight:+$('bodyWeight').value||0,bodyFat:$('bodyFat').value===''?null:+$('bodyFat').value,consent:$('consent').checked,level:localStorage.getItem('repfuel_level')||$('level')?.value||'beginner'};
 }
 function resistanceMET(e,sets){
   let total=0;
@@ -172,7 +180,7 @@ function estimate(e,sets){
 }
 async function saveEvent(e,r){
   const p=profile();
-  const payload={consent:p.consent,sessionId,workoutId:state.workoutId,modelVersion:MODEL_VERSION,bodyWeightKg:p.weight,heightCm:p.height,ageYears:p.age,sex:p.sex,bodyFatPercent:p.bodyFat,
+  const payload={consent:p.consent,sessionId,workoutId:state.workoutId,modelVersion:MODEL_VERSION,bodyWeightKg:p.weight,heightCm:p.height,ageYears:p.age,sex:p.sex,bodyFatPercent:p.bodyFat,trainingLevel:p.level,
     bodyPart:e.bodyPart,exercise:e.name,equipment:e.equipment,exerciseFamily:e.family,loadKg:Math.max(...state.sets.map(s=>s.load),0),
     reps:state.sets.reduce((a,s)=>a+s.reps,0),sets:state.sets.length,activeSeconds:r.active,restSeconds:r.rest,totalVolumeKg:r.volume,
     estimatedNetKcal:r.net,estimateLowKcal:r.low,estimateHighKcal:r.high,publishedAnchorKcal:r.anchor,savedAt:new Date().toISOString()};
@@ -213,7 +221,7 @@ function loadProfile(){
   $('age').value=p.age||'';$('sex').value=p.sex||'male';$('height').value=p.height||'';$('bodyWeight').value=p.weight||'';$('bodyFat').value=p.bodyFat??'';$('consent').checked=!!p.consent;
   $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderHistory();
 }
-$('saveProfile').onclick=()=>{const p=profile();if(!p.age||!p.height||!p.weight){alert('Please enter age, height and weight.');return}localStorage.setItem('repfuel_profile',JSON.stringify(p));$('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderHistory()};
+$('saveProfile').onclick=()=>{const p=profile();if(!p.age||!p.height||!p.weight){alert('Please enter age, height and weight.');return}localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',$('level').value);$('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderHistory()};
 $('exerciseSelect').onchange=selectExercise;
 $('startSet').onclick=startSet;$('finishSet').onclick=finishSet;$('addSet').onclick=addSet;$('finishExercise').onclick=finishExercise;
 $('finishWorkout').onclick=finishWorkout;$('startAnother').onclick=startAnotherWorkout;

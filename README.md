@@ -125,3 +125,11 @@ Each resistance-training set now stores its own load. Users can increase or decr
 
 ## v1.1.2 — Bug fix and timing polish
 Fixed a JavaScript initialization error caused by a missing `strengthControls` element. The error prevented later click handlers from attaching, which made Start/Finish/Add Set and other buttons appear non-functional. v1.1.2 also records and displays each set's exact start and end timestamps and improves button states so an exercise can only be saved after a completed set.
+
+
+## v1.2.0 — Product UX
+- Dark RepFuel visual identity using the requested green/lime palette.
+- Training level collected as Beginner / Intermediate / Pro.
+- Visual exercise picker with recognizable movement cards.
+- External load explicitly accepts 0 kg.
+- Training level is collected as a dataset feature and does not artificially change calories until validated.
