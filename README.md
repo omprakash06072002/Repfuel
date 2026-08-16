@@ -137,3 +137,10 @@ Fixed a JavaScript initialization error caused by a missing `strengthControls` e
 
 ## v1.2.1 — Exercise picker fix
 Fixed category initialization and exercise selection. Body-part buttons now render reliably, selecting up to three categories populates the exercise dropdown, and each exercise appears as a clickable visual card. Exercise cards now use inline SVG movement illustrations instead of placeholder emoji.
+
+
+## v1.2.2 — Category initialization hardening
+- Added a static fallback for all workout categories.
+- Added DOM-ready bootstrap so categories render even with cached/local profile state.
+- Exercise gallery and dropdown now initialize safely after categories.
+- Prevented empty category/exercise state from blocking the workout UI.

@@ -9,7 +9,7 @@ const EXERCISES = {
   Cardio:[['Treadmill — Walking','treadmill','treadmill_walk'],['Treadmill — Running','treadmill','treadmill_run'],['Treadmill — Incline Walking','treadmill','treadmill_incline_walk'],['Stationary Bike','bike','bike_stationary'],['Spin Bike','bike','spin_bike'],['Elliptical / Cross Trainer','machine','elliptical'],['StairMaster','machine','stair_climber'],['Rowing Machine','machine','rower'],['Air Bike','bike','air_bike'],['SkiErg','machine','skierg']]
 };
 
-const MODEL_VERSION='1.2.1';
+const MODEL_VERSION='1.2.2';
 const REST_MET=1.5;
 const BASE_MET={
  heavy_compound:5.5,db_compound:5.0,machine_compound:4.2,isolation:3.7,
@@ -90,12 +90,17 @@ function exerciseVisual(e){
     <div class="art-label">${e.equipment||'Exercise'}</div>
   </div>`;
 }
+const CATEGORY_NAMES=['Chest','Back','Legs','Biceps','Triceps','Shoulders','Abs / Core','Cardio'];
 function renderParts(){
-  const all=Object.keys(EXERCISES);
-  state.parts=all;
-  state.selectedParts=state.selectedParts||[];
-  $('bodyParts').innerHTML=all.map(p=>`<button class="chip ${state.selectedParts.includes(p)?'active':''}" data-part="${p}">${p}</button>`).join('');
-  document.querySelectorAll('#bodyParts .chip').forEach(b=>b.onclick=()=>selectPart(b.dataset.part));
+  const el=$('bodyParts');
+  if(!el) return;
+  state.parts=CATEGORY_NAMES.slice();
+  state.selectedParts=Array.isArray(state.selectedParts)?state.selectedParts:[];
+  el.innerHTML=CATEGORY_NAMES.map(p=>`<button type="button" class="chip ${state.selectedParts.includes(p)?'active':''}" data-part="${p}">${p}</button>`).join('');
+  el.style.display='flex';
+  el.style.flexWrap='wrap';
+  el.style.gap='8px';
+  el.querySelectorAll('.chip').forEach(b=>b.onclick=()=>selectPart(b.dataset.part));
 }
 function selectPart(part){
   state.selectedParts=state.selectedParts||[];
@@ -106,7 +111,11 @@ function selectPart(part){
   renderExercises();
 }
 function renderExercises(){
-  state.exerciseOptions=state.selectedParts.flatMap(p=>(EXERCISES[p]||[]).map(e=>({bodyPart:p,name:e[0],equipment:e[1],family:e[2]})));
+  const gallery=$('exerciseGallery');
+  const select=$('exerciseSelect');
+  if(!gallery||!select) return;
+  state.selectedParts=Array.isArray(state.selectedParts)?state.selectedParts:[];
+  state.exerciseOptions=state.selectedParts.filter(p=>EXERCISES[p]).flatMap(p=>(EXERCISES[p]||[]).map(e=>({bodyPart:p,name:e[0],equipment:e[1],family:e[2]})));
   $('exerciseSelect').innerHTML=state.exerciseOptions.length
     ? state.exerciseOptions.map((e,i)=>`<option value="${i}">${e.bodyPart} · ${e.name}</option>`).join('')
     : '<option value="">Choose a category first</option>';
@@ -126,7 +135,7 @@ function renderExercises(){
   if(state.exerciseOptions.length) selectExercise();
 }
 function selectExercise(){
-  const e=state.exerciseOptions[Number($('exerciseSelect').value)]||null;
+  const e=state.exerciseOptions?.[Number($('exerciseSelect').value)]||null;
   state.exercise=e;state.sets=[];state.draft=null;
   $('currentExercise').textContent=e?e.name:'Select an exercise';
   $('exerciseMeta').textContent=e?`Family: ${e.family.replaceAll('_',' ')} · ${e.equipment}`:'';
@@ -277,9 +286,9 @@ function renderSummary(){
 function loadProfile(){
   const p=JSON.parse(localStorage.getItem('repfuel_profile')||'null');if(!p)return;
   $('age').value=p.age||'';$('sex').value=p.sex||'male';$('height').value=p.height||'';$('bodyWeight').value=p.weight||'';$('bodyFat').value=p.bodyFat??'';$('level').value=p.level||localStorage.getItem('repfuel_level')||'beginner';$('consent').checked=!!p.consent;
-  $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderHistory();
+  $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderExercises();renderHistory();
 }
-$('saveProfile').onclick=()=>{const p=profile();p.level=$('level').value;if(!p.age||!p.height||!p.weight){alert('Please enter age, height and weight.');return}localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',$('level').value);$('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderHistory()};
+$('saveProfile').onclick=()=>{const p=profile();p.level=$('level').value;if(!p.age||!p.height||!p.weight){alert('Please enter age, height and weight.');return}localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',$('level').value);$('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderExercises();renderHistory()};
 $('exerciseSelect').onchange=selectExercise;
 $('startSet').onclick=startSet;$('finishSet').onclick=finishSet;$('addSet').onclick=addSet;$('finishExercise').onclick=finishExercise;
 $('finishWorkout').onclick=finishWorkout;$('startAnother').onclick=startAnotherWorkout;
@@ -288,4 +297,10 @@ $('editProfile').onclick=()=>{$('workoutCard').classList.add('hidden');$('histor
 $('newWorkout').onclick=()=>{
   if(confirm('Reset the current workout? Saved history will remain on this device.')) location.reload();
 };
-loadProfile();
+function bootRepFuel(){
+  renderParts();
+  renderExercises();
+  loadProfile();
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootRepFuel);
+else bootRepFuel();
