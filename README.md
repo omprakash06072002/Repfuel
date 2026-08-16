@@ -121,3 +121,7 @@ RepFuel v1.1 introduces a cleaner onboarding flow, multi-exercise workouts, expl
 
 ## v1.1.1 — Variable load per set
 Each resistance-training set now stores its own load. Users can increase or decrease the weight between sets (for example 60 → 70 → 80 kg) while keeping reps and timing separate for every set. The last load remains as the next-set default for convenience.
+
+
+## v1.1.2 — Bug fix and timing polish
+Fixed a JavaScript initialization error caused by a missing `strengthControls` element. The error prevented later click handlers from attaching, which made Start/Finish/Add Set and other buttons appear non-functional. v1.1.2 also records and displays each set's exact start and end timestamps and improves button states so an exercise can only be saved after a completed set.

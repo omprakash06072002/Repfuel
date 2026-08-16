@@ -9,7 +9,7 @@ const EXERCISES = {
   Cardio:[['Treadmill — Walking','treadmill','treadmill_walk'],['Treadmill — Running','treadmill','treadmill_run'],['Treadmill — Incline Walking','treadmill','treadmill_incline_walk'],['Stationary Bike','bike','bike_stationary'],['Spin Bike','bike','spin_bike'],['Elliptical / Cross Trainer','machine','elliptical'],['StairMaster','machine','stair_climber'],['Rowing Machine','machine','rower'],['Air Bike','bike','air_bike'],['SkiErg','machine','skierg']]
 };
 
-const MODEL_VERSION='1.0.0';
+const MODEL_VERSION='1.1.2';
 const REST_MET=1.5;
 const BASE_MET={
  heavy_compound:5.5,db_compound:5.0,machine_compound:4.2,isolation:3.7,
@@ -67,8 +67,7 @@ function selectExercise(){
   $('exerciseMeta').textContent=e?`Family: ${e.family.replaceAll('_',' ')} · ${e.equipment}`:'';
   const cardio=isCardio(e?.family);
   $('cardioControls').classList.toggle('hidden',!cardio);
-  $('strengthControls').classList.toggle('hidden',!!cardio);
-  $('startSet').disabled=!e;$('finishExercise').disabled=!e;$('setsTable').innerHTML='';
+  $('startSet').disabled=!e;$('finishSet').disabled=true;$('addSet').disabled=true;$('finishExercise').disabled=true;$('setsTable').innerHTML='';
   $('timer').textContent='00:00';
 }
 function tick(){if(!state.setStart)return;$('timer').textContent=new Date((Date.now()-state.setStart)).toISOString().substring(14,19)}
@@ -77,7 +76,8 @@ function finishSet(){
   if(!state.setStart)return;
   const end=Date.now(),active=(end-state.setStart)/1000,rest=state.sets.length?(state.setStart-state.sets.at(-1).end)/1000:0;
   clearInterval(state.timer);state.setStart=null;
-  state.draft={start:end-active*1000,end,active,rest};
+  const startMs=end-active*1000;
+  state.draft={start:startMs,end,active,rest};
   $('finishSet').disabled=true;$('startSet').disabled=false;$('addSet').disabled=false;$('timer').textContent='00:00';
 }
 function addSet(){
@@ -91,6 +91,7 @@ function addSet(){
   state.sets.push({...state.draft,reps,load});
   state.draft=null;
   $('reps').value='';
+  $('finishExercise').disabled=false;
   $('addSet').disabled=true;
   // Keep the last load in the input as a convenient default for the next set.
   // The user is free to increase/decrease it before starting the next set.
@@ -100,10 +101,11 @@ function renderSets(){
   $('setsTable').innerHTML=state.sets.map((s,i)=>{
     const loadText=isCardio(state.exercise.family)?'—':`${fmt(s.load)} kg`;
     const repsText=isCardio(state.exercise.family)?`${fmt(s.active/60)} min`:`${s.reps} reps`;
+    const timeText=`${new Date(s.start).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})} → ${new Date(s.end).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
     return `<div class="set-item">
       <span><strong>Set ${i+1}</strong><small>${loadText}</small></span>
       <span>${repsText}</span>
-      <span>${fmt(s.active)}s work</span>
+      <span>${fmt(s.active)}s work<small>${timeText}</small></span>
       <span>${fmt(s.rest)}s rest</span>
     </div>`;
   }).join('');
@@ -184,7 +186,7 @@ function finishExercise(){
   const r=estimate(state.exercise,state.sets);
   state.exercises.push({exercise:state.exercise,sets:[...state.sets],result:r});
   saveEvent(state.exercise,r);
-  state.sets=[];state.draft=null;renderSets();$('finishExercise').disabled=true;renderSummary();
+  state.sets=[];state.draft=null;renderSets();$('finishExercise').disabled=true;$('startSet').disabled=true;$('finishSet').disabled=true;$('addSet').disabled=true;renderSummary();
 }
 function finishWorkout(){
   if(state.setStart) finishSet();
@@ -209,7 +211,7 @@ function renderSummary(){
 function loadProfile(){
   const p=JSON.parse(localStorage.getItem('repfuel_profile')||'null');if(!p)return;
   $('age').value=p.age||'';$('sex').value=p.sex||'male';$('height').value=p.height||'';$('bodyWeight').value=p.weight||'';$('bodyFat').value=p.bodyFat??'';$('consent').checked=!!p.consent;
-  $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderHistory();renderHistory();
+  $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderHistory();
 }
 $('saveProfile').onclick=()=>{const p=profile();if(!p.age||!p.height||!p.weight){alert('Please enter age, height and weight.');return}localStorage.setItem('repfuel_profile',JSON.stringify(p));$('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderHistory()};
 $('exerciseSelect').onchange=selectExercise;
@@ -217,4 +219,7 @@ $('startSet').onclick=startSet;$('finishSet').onclick=finishSet;$('addSet').oncl
 $('finishWorkout').onclick=finishWorkout;$('startAnother').onclick=startAnotherWorkout;
 $('clearHistory').onclick=()=>{if(confirm('Clear workout history from this device?')){localStorage.removeItem('repfuel_history');renderHistory()}};
 $('editProfile').onclick=()=>{$('workoutCard').classList.add('hidden');$('historyCard').classList.add('hidden');$('profileCard').classList.remove('hidden')};
-$('newWorkout').onclick=()=>location.reload();loadProfile();
+$('newWorkout').onclick=()=>{
+  if(confirm('Reset the current workout? Saved history will remain on this device.')) location.reload();
+};
+loadProfile();
