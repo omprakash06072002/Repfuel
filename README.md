@@ -153,3 +153,7 @@ Fixed category initialization and exercise selection. Body-part buttons now rend
 - Added exercise detail panel with muscles, equipment and training tip.
 - Added load stepper with 0 kg support.
 - Preserved per-set load, reps, timing, volume and calorie estimation logic.
+
+
+## v1.4.0 — Approved visual direction
+The workout screen follows the approved RepFuel reference: compact dark navigation, neon-lime active state, horizontal category filters, five-column exercise grid on desktop, search/list controls, and a sticky right-hand exercise detail panel.

@@ -9,7 +9,7 @@ const EXERCISES = {
   Cardio:[['Treadmill — Walking','treadmill','treadmill_walk'],['Treadmill — Running','treadmill','treadmill_run'],['Treadmill — Incline Walking','treadmill','treadmill_incline_walk'],['Stationary Bike','bike','bike_stationary'],['Spin Bike','bike','spin_bike'],['Elliptical / Cross Trainer','machine','elliptical'],['StairMaster','machine','stair_climber'],['Rowing Machine','machine','rower'],['Air Bike','bike','air_bike'],['SkiErg','machine','skierg']]
 };
 
-const MODEL_VERSION='1.3.1';
+const MODEL_VERSION='1.4.0';
 const REST_MET=1.5;
 const BASE_MET={
  heavy_compound:5.5,db_compound:5.0,machine_compound:4.2,isolation:3.7,
