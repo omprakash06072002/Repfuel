@@ -9,7 +9,7 @@ const EXERCISES = {
   Cardio:[['Treadmill — Walking','treadmill','treadmill_walk'],['Treadmill — Running','treadmill','treadmill_run'],['Treadmill — Incline Walking','treadmill','treadmill_incline_walk'],['Stationary Bike','bike','bike_stationary'],['Spin Bike','bike','spin_bike'],['Elliptical / Cross Trainer','machine','elliptical'],['StairMaster','machine','stair_climber'],['Rowing Machine','machine','rower'],['Air Bike','bike','air_bike'],['SkiErg','machine','skierg']]
 };
 
-const MODEL_VERSION='1.2.0';
+const MODEL_VERSION='1.2.1';
 const REST_MET=1.5;
 const BASE_MET={
  heavy_compound:5.5,db_compound:5.0,machine_compound:4.2,isolation:3.7,
@@ -49,27 +49,84 @@ function renderHistory(){
 
 
 function exerciseVisual(e){
-  const family=(e.family||'').toLowerCase();
-  let icon='🏋️', motion='↕';
-  if(family.includes('cardio')){icon='🏃';motion='→'}
-  else if(family.includes('bodyweight')){icon='🤸';motion='↕'}
-  else if(family.includes('cable')){icon='🪢';motion='↔'}
+  const f=(e.family||'').toLowerCase();
+  const eq=(e.equipment||'').toLowerCase();
+  let pose='stand', equipment='';
+  if(f.includes('row')||f.includes('pull')||f.includes('pullover')) pose='pull';
+  if(f.includes('press')||f.includes('push')||f.includes('triceps')||f.includes('chest')||f.includes('shoulder')) pose='press';
+  if(f.includes('squat')||f.includes('leg')||f.includes('lunge')||f.includes('hinge')||f.includes('deadlift')||f.includes('hip')||f.includes('calf')) pose='leg';
+  if(f.includes('curl')||f.includes('biceps')) pose='curl';
+  if(f.includes('core')||f.includes('plank')||f.includes('mountain')) pose='core';
+  if(f.includes('treadmill')||f.includes('bike')||f.includes('elliptical')||f.includes('stair')||f.includes('rower')||f.includes('air_bike')||f.includes('skierg')) pose='cardio';
+
+  const equipmentSvg = eq.includes('barbell') ? '<rect x="38" y="87" width="124" height="6" rx="3"/><rect x="32" y="78" width="8" height="24" rx="2"/><rect x="160" y="78" width="8" height="24" rx="2"/>' :
+    eq.includes('dumbbell') ? '<rect x="53" y="82" width="35" height="5" rx="2"/><rect x="48" y="76" width="6" height="17"/><rect x="87" y="76" width="6" height="17"/><rect x="107" y="82" width="35" height="5" rx="2"/><rect x="102" y="76" width="6" height="17"/><rect x="142" y="76" width="6" height="17"/>' :
+    eq.includes('cable') ? '<path d="M30 30 L30 120" stroke-width="5"/><path d="M30 55 Q80 75 125 85" fill="none" stroke-width="3"/><circle cx="125" cy="85" r="5"/>' :
+    eq.includes('machine') ? '<rect x="145" y="42" width="28" height="82" rx="5"/><rect x="137" y="122" width="48" height="6" rx="3"/>' :
+    eq.includes('treadmill') ? '<path d="M50 115 L170 115 L155 125 L38 125 Z"/><path d="M55 108 L42 70 L95 70" fill="none" stroke-width="4"/>' :
+    eq.includes('bike') ? '<circle cx="55" cy="112" r="18" fill="none" stroke-width="4"/><circle cx="145" cy="112" r="18" fill="none" stroke-width="4"/><path d="M55 112 L90 78 L145 112 L105 112 Z" fill="none" stroke-width="4"/>' :
+    '<path d="M42 120 L165 120" stroke-width="4"/>';
+
+  let body;
+  if(pose==='pull') body='<circle cx="103" cy="42" r="10"/><path d="M103 52 L103 87 M103 61 L72 47 M103 61 L134 47 M103 87 L83 116 M103 87 L123 116" fill="none" stroke-width="6" stroke-linecap="round"/>';
+  else if(pose==='press') body='<circle cx="103" cy="43" r="10"/><path d="M103 53 L103 91 M103 63 L72 78 M103 63 L134 78 M103 91 L84 118 M103 91 L122 118" fill="none" stroke-width="6" stroke-linecap="round"/>';
+  else if(pose==='leg') body='<circle cx="103" cy="40" r="10"/><path d="M103 50 L103 82 M103 60 L76 75 M103 60 L130 75 M103 82 L76 102 L63 120 M103 82 L128 101 L145 118" fill="none" stroke-width="6" stroke-linecap="round"/>';
+  else if(pose==='curl') body='<circle cx="103" cy="43" r="10"/><path d="M103 53 L103 90 M103 62 L76 76 L70 93 M103 62 L130 76 L136 93 M103 90 L86 118 M103 90 L120 118" fill="none" stroke-width="6" stroke-linecap="round"/>';
+  else if(pose==='core') body='<circle cx="102" cy="47" r="10"/><path d="M96 57 L77 78 L115 88 M77 78 L53 100 M115 88 L142 105 M88 80 L73 112 M105 86 L120 113" fill="none" stroke-width="6" stroke-linecap="round"/>';
+  else if(pose==='cardio') body='<circle cx="105" cy="43" r="10"/><path d="M105 53 L92 80 L110 98 M94 65 L70 80 M110 98 L95 119 M110 98 L132 115" fill="none" stroke-width="6" stroke-linecap="round"/>';
+  else body='<circle cx="103" cy="43" r="10"/><path d="M103 53 L103 88 M103 63 L76 75 M103 63 L130 75 M103 88 L84 118 M103 88 L122 118" fill="none" stroke-width="6" stroke-linecap="round"/>';
+
+  const arrow = pose==='pull'||pose==='press'||pose==='curl' ? '<path d="M177 62 L177 103 M169 72 L177 62 L185 72 M169 93 L177 103 L185 93" fill="none" stroke-width="3" stroke-linecap="round"/>' :
+    pose==='leg' ? '<path d="M176 72 L176 108 M168 100 L176 108 L184 100" fill="none" stroke-width="3" stroke-linecap="round"/>' :
+    pose==='cardio' ? '<path d="M169 55 L187 55 M180 48 L187 55 L180 62" fill="none" stroke-width="3" stroke-linecap="round"/>' :
+    '<path d="M177 74 L177 104 M169 96 L177 104 L185 96" fill="none" stroke-width="3" stroke-linecap="round"/>';
+
   return `<div class="exercise-art" aria-label="${e.name} exercise illustration">
-    <div class="art-grid"></div><div class="art-person">${icon}</div><div class="art-arrow">${motion}</div>
+    <svg viewBox="0 0 210 145" role="img" aria-label="${e.name}">
+      <g class="art-eq">${equipmentSvg}</g>
+      <g class="art-body">${body}</g>
+      <g class="art-arrow">${arrow}</g>
+    </svg>
     <div class="art-label">${e.equipment||'Exercise'}</div>
   </div>`;
 }
 function renderParts(){
-  $('bodyParts').innerHTML=state.parts.map(p=>`<button class="chip ${state.selectedParts?.includes(p)?'active':''}" data-part="${p}">${p}</button>`).join('');
+  const all=Object.keys(EXERCISES);
+  state.parts=all;
+  state.selectedParts=state.selectedParts||[];
+  $('bodyParts').innerHTML=all.map(p=>`<button class="chip ${state.selectedParts.includes(p)?'active':''}" data-part="${p}">${p}</button>`).join('');
   document.querySelectorAll('#bodyParts .chip').forEach(b=>b.onclick=()=>selectPart(b.dataset.part));
 }
+function selectPart(part){
+  state.selectedParts=state.selectedParts||[];
+  if(state.selectedParts.includes(part)) state.selectedParts=state.selectedParts.filter(x=>x!==part);
+  else if(state.selectedParts.length<3) state.selectedParts.push(part);
+  else {alert('You can select up to 3 muscle groups for one workout.');return}
+  renderParts();
+  renderExercises();
+}
 function renderExercises(){
-  state.exerciseOptions=state.parts.flatMap(p=>EXERCISES[p].map(e=>({bodyPart:p,name:e[0],equipment:e[1],family:e[2]})));
-  $('exerciseSelect').innerHTML=state.exerciseOptions.length?state.exerciseOptions.map((e,i)=>`<option value="${i}">${e.bodyPart} · ${e.name}</option>`).join(''):'<option>Select category</option>';
-  selectExercise();
+  state.exerciseOptions=state.selectedParts.flatMap(p=>(EXERCISES[p]||[]).map(e=>({bodyPart:p,name:e[0],equipment:e[1],family:e[2]})));
+  $('exerciseSelect').innerHTML=state.exerciseOptions.length
+    ? state.exerciseOptions.map((e,i)=>`<option value="${i}">${e.bodyPart} · ${e.name}</option>`).join('')
+    : '<option value="">Choose a category first</option>';
+
+  $('exerciseGallery').innerHTML=state.exerciseOptions.length
+    ? state.exerciseOptions.map((e,i)=>`<button type="button" class="exercise-card" data-index="${i}">
+        ${exerciseVisual(e)}<strong>${e.name}</strong><span>${e.equipment||''} · ${e.family||''}</span>
+      </button>`).join('')
+    : '<div class="empty-gallery">Select Chest, Back, Legs, Biceps, Triceps, Shoulders, Abs / Core or Cardio above to see exercises.</div>';
+
+  document.querySelectorAll('.exercise-card').forEach(card=>card.onclick=()=>{
+    $('exerciseSelect').value=card.dataset.index;
+    selectExercise();
+    document.querySelectorAll('.exercise-card').forEach(c=>c.classList.remove('active'));
+    card.classList.add('active');
+  });
+  if(state.exerciseOptions.length) selectExercise();
 }
 function selectExercise(){
-  const e=state.exerciseOptions[$('exerciseSelect').selectedIndex]||null;
+  const e=state.exerciseOptions[Number($('exerciseSelect').value)]||null;
   state.exercise=e;state.sets=[];state.draft=null;
   $('currentExercise').textContent=e?e.name:'Select an exercise';
   $('exerciseMeta').textContent=e?`Family: ${e.family.replaceAll('_',' ')} · ${e.equipment}`:'';
@@ -77,6 +134,7 @@ function selectExercise(){
   $('cardioControls').classList.toggle('hidden',!cardio);
   $('startSet').disabled=!e;$('finishSet').disabled=true;$('addSet').disabled=true;$('finishExercise').disabled=true;$('setsTable').innerHTML='';
   $('timer').textContent='00:00';
+  document.querySelectorAll('.exercise-card').forEach(c=>c.classList.toggle('active',Number(c.dataset.index)===Number($('exerciseSelect').value)));
 }
 function tick(){if(!state.setStart)return;$('timer').textContent=new Date((Date.now()-state.setStart)).toISOString().substring(14,19)}
 function startSet(){state.setStart=Date.now();$('startSet').disabled=true;$('finishSet').disabled=false;$('addSet').disabled=true;state.timer=setInterval(tick,250)}
@@ -218,10 +276,10 @@ function renderSummary(){
 }
 function loadProfile(){
   const p=JSON.parse(localStorage.getItem('repfuel_profile')||'null');if(!p)return;
-  $('age').value=p.age||'';$('sex').value=p.sex||'male';$('height').value=p.height||'';$('bodyWeight').value=p.weight||'';$('bodyFat').value=p.bodyFat??'';$('consent').checked=!!p.consent;
+  $('age').value=p.age||'';$('sex').value=p.sex||'male';$('height').value=p.height||'';$('bodyWeight').value=p.weight||'';$('bodyFat').value=p.bodyFat??'';$('level').value=p.level||localStorage.getItem('repfuel_level')||'beginner';$('consent').checked=!!p.consent;
   $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderHistory();
 }
-$('saveProfile').onclick=()=>{const p=profile();if(!p.age||!p.height||!p.weight){alert('Please enter age, height and weight.');return}localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',$('level').value);$('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderHistory()};
+$('saveProfile').onclick=()=>{const p=profile();p.level=$('level').value;if(!p.age||!p.height||!p.weight){alert('Please enter age, height and weight.');return}localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',$('level').value);$('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderHistory()};
 $('exerciseSelect').onchange=selectExercise;
 $('startSet').onclick=startSet;$('finishSet').onclick=finishSet;$('addSet').onclick=addSet;$('finishExercise').onclick=finishExercise;
 $('finishWorkout').onclick=finishWorkout;$('startAnother').onclick=startAnotherWorkout;

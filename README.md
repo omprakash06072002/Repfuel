@@ -133,3 +133,7 @@ Fixed a JavaScript initialization error caused by a missing `strengthControls` e
 - Visual exercise picker with recognizable movement cards.
 - External load explicitly accepts 0 kg.
 - Training level is collected as a dataset feature and does not artificially change calories until validated.
+
+
+## v1.2.1 — Exercise picker fix
+Fixed category initialization and exercise selection. Body-part buttons now render reliably, selecting up to three categories populates the exercise dropdown, and each exercise appears as a clickable visual card. Exercise cards now use inline SVG movement illustrations instead of placeholder emoji.
