@@ -144,3 +144,12 @@ Fixed category initialization and exercise selection. Body-part buttons now rend
 - Added DOM-ready bootstrap so categories render even with cached/local profile state.
 - Exercise gallery and dropdown now initialize safely after categories.
 - Prevented empty category/exercise state from blocking the workout UI.
+
+
+## v1.3.0 — Premium workout dashboard
+- Reworked workout screen to match the approved premium dark/lime design direction.
+- Added top navigation, live workout stats, two-column desktop layout and workout sidebar.
+- Added professional start/finish vector exercise demonstrations for all 78 exercises.
+- Added exercise detail panel with muscles, equipment and training tip.
+- Added load stepper with 0 kg support.
+- Preserved per-set load, reps, timing, volume and calorie estimation logic.
