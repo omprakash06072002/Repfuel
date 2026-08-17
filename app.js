@@ -68,23 +68,94 @@ async function fetchCloudHistory(){
   return data||[];
 }
 
+function formatDateTime(value){
+  if(!value)return '—';
+  return new Date(value).toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function formatDay(value){
+  if(!value)return '—';
+  return new Date(value).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+}
+function dashboardData(rows){
+  const now=Date.now(), d7=now-7*86400000, d30=now-30*86400000;
+  const workoutSummary=(rows||[]).map(w=>({
+    ...w,
+    date:new Date(w.ended_at||w.created_at||w.started_at).getTime(),
+    volume:Number(w.summary?.volume||0),
+    kcal:Number(w.summary?.netKcal||0),
+    sets:Number(w.summary?.sets||0),
+    active:Number(w.summary?.active||0)
+  }));
+  const exerciseMap={};
+  workoutSummary.forEach(w=>{
+    (Array.isArray(w.exercises)?w.exercises:[]).forEach(ex=>{
+      const name=ex.name||'Unknown exercise';
+      const stats=exerciseMap[name]??={name,sessions:0,sets:0,volume:0,bestLoad:0,bestReps:0,bestE1RM:0,lastLoad:0,lastReps:0,lastDate:0};
+      stats.sessions+=1;
+      const sets=Array.isArray(ex.sets)?ex.sets:[];
+      stats.sets+=sets.length;
+      sets.forEach(s=>{
+        const load=Number(s.load||0), reps=Number(s.reps||0);
+        stats.volume+=load*reps;
+        stats.bestLoad=Math.max(stats.bestLoad,load);
+        stats.bestReps=Math.max(stats.bestReps,reps);
+        stats.bestE1RM=Math.max(stats.bestE1RM,load>0&&reps>0?load*(1+reps/30):0);
+        if(w.date>=stats.lastDate){stats.lastLoad=load;stats.lastReps=reps;stats.lastDate=w.date;}
+      });
+    });
+  });
+  const exercises=Object.values(exerciseMap).sort((a,b)=>b.volume-a.volume);
+  const days=new Set(workoutSummary.map(w=>new Date(w.date).toISOString().slice(0,10))).size;
+  const totalVolume=workoutSummary.reduce((a,w)=>a+w.volume,0);
+  const totalKcal=workoutSummary.reduce((a,w)=>a+w.kcal,0);
+  const totalSets=workoutSummary.reduce((a,w)=>a+w.sets,0);
+  const recent7=workoutSummary.filter(w=>w.date>=d7);
+  const recent30=workoutSummary.filter(w=>w.date>=d30);
+  return {workouts:workoutSummary,exercises,days,totalVolume,totalKcal,totalSets,recent7,recent30};
+}
+function renderProgressDashboard(rows){
+  const d=dashboardData(rows);
+  const el=$('progressDashboard'); if(!el)return;
+  const weekVol=d.recent7.reduce((a,w)=>a+w.volume,0);
+  const monthVol=d.recent30.reduce((a,w)=>a+w.volume,0);
+  const avgVol=d.workouts.length?d.totalVolume/d.workouts.length:0;
+  const best=d.workouts.reduce((a,w)=>Math.max(a,w.volume),0);
+  const top=d.exercises.slice(0,8);
+  const recent=d.workouts.slice().sort((a,b)=>b.date-a.date).slice(0,8);
+  el.innerHTML=`
+    <div class="progress-grid">
+      <div class="progress-card"><span>All-time workouts</span><strong>${d.workouts.length}</strong><small>${d.days} training days</small></div>
+      <div class="progress-card"><span>7-day volume</span><strong>${Math.round(weekVol).toLocaleString()} kg</strong><small>${d.recent7.length} workout${d.recent7.length===1?'':'s'}</small></div>
+      <div class="progress-card"><span>30-day volume</span><strong>${Math.round(monthVol).toLocaleString()} kg</strong><small>${d.recent30.length} workout${d.recent30.length===1?'':'s'}</small></div>
+      <div class="progress-card"><span>Best workout</span><strong>${Math.round(best).toLocaleString()} kg</strong><small>Average ${Math.round(avgVol).toLocaleString()} kg</small></div>
+    </div>
+    <div class="progress-section">
+      <div class="section-head"><div><p class="eyebrow">EXERCISE PROGRESSION</p><h3>Highest training volume</h3></div></div>
+      ${top.length?`<div class="progress-table"><div class="progress-row progress-header"><span>Exercise</span><span>Sessions</span><span>Sets</span><span>Volume</span><span>Best load</span></div>${top.map(x=>`<div class="progress-row"><strong>${x.name}</strong><span>${x.sessions}</span><span>${x.sets}</span><span>${Math.round(x.volume).toLocaleString()} kg</span><span>${x.bestLoad?fmt(x.bestLoad)+' kg':'Bodyweight'}</span></div>`).join('')}</div>`:'<p class="muted">Complete your first workout to build exercise progression.</p>'}
+    </div>
+    <div class="progress-section">
+      <div class="section-head"><div><p class="eyebrow">PERSONAL RECORDS</p><h3>Best recorded sets</h3></div></div>
+      ${top.length?`<div class="progress-table"><div class="progress-row progress-header"><span>Exercise</span><span>Best load</span><span>Best reps</span><span>Est. 1RM</span><span>Last set</span></div>${d.exercises.slice().sort((a,b)=>b.bestLoad-a.bestLoad || b.bestReps-a.bestReps).slice(0,8).map(x=>`<div class="progress-row"><strong>${x.name}</strong><span>${x.bestLoad?fmt(x.bestLoad)+' kg':'Bodyweight'}</span><span>${x.bestReps||0}</span><span>${x.bestE1RM?fmt(x.bestE1RM)+' kg':'—'}</span><span>${x.lastLoad?fmt(x.lastLoad)+' kg × '+x.lastReps:'Bodyweight × '+(x.lastReps||0)}</span></div>`).join('')}</div>`:'<p class="muted">Your personal records will appear here after you log sets.</p>'}
+    </div>`;
+}
 async function renderHistory(){
   const rows=await fetchCloudHistory();
   const h=flattenCloudWorkouts(rows);
   const sessions={};
   h.forEach(x=>{const key=x.savedAt?.slice(0,10)||'unknown';(sessions[key]??=[]).push(x)});
-  const days=Object.entries(sessions).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14);
+  const days=Object.entries(sessions).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,30);
   const list=$('historyList');
   if(list) list.innerHTML=days.length?days.map(([day,items])=>{
     const kcal=items.reduce((a,x)=>a+(x.estimatedNetKcal||0),0);
     const volume=items.reduce((a,x)=>a+(x.totalVolumeKg||0),0);
+    const sets=items.reduce((a,x)=>a+(x.sets||0),0);
     const ex=[...new Set(items.map(x=>x.exercise))];
-    return `<div class="history-day"><div><strong>${new Date(day+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}</strong><span>${ex.length} exercise${ex.length===1?'':'s'}</span></div><div><strong>${Math.round(kcal)} kcal</strong><span>${Math.round(volume).toLocaleString()} kg volume</span></div></div>`
+    return `<div class="history-day"><div><strong>${formatDay(day+'T12:00:00')}</strong><span>${ex.slice(0,3).join(' · ')}${ex.length>3?' · +'+(ex.length-3)+' more':''}</span></div><div><strong>${Math.round(volume).toLocaleString()} kg</strong><span>${sets} sets · ${Math.round(kcal)} kcal</span></div></div>`
   }).join(''):'<p class="muted">No cloud workouts yet. Finish a workout and it will appear here.</p>';
 
   const totalKcal=h.reduce((a,x)=>a+(x.estimatedNetKcal||0),0);
   const totalVolume=h.reduce((a,x)=>a+(x.totalVolumeKg||0),0);
-  if($('historyKcal')) $('historyKcal').textContent=Math.round(totalKcal);
+  if($('historyKcal')) $('historyKcal').textContent=Math.round(totalKcal).toLocaleString();
   if($('historyVolume')) $('historyVolume').textContent=Math.round(totalVolume).toLocaleString()+' kg';
   if($('historyDays')) $('historyDays').textContent=new Set(h.map(x=>x.savedAt?.slice(0,10)).filter(Boolean)).size;
   if($('historySets')) $('historySets').textContent=h.reduce((a,x)=>a+(x.sets||0),0);
@@ -92,6 +163,7 @@ async function renderHistory(){
   if($('progressVolume')) $('progressVolume').textContent=Math.round(totalVolume).toLocaleString()+' kg';
   const bestVolume=rows.reduce((best,w)=>Math.max(best,Number(w.summary?.volume||0)),0);
   if($('progressBest')) $('progressBest').textContent=Math.round(bestVolume).toLocaleString()+' kg';
+  renderProgressDashboard(rows);
 }
 
 const EXERCISE_IMAGE_MAP = {"barbell_bench_press":"assets/exercises/barbell_press.png","incline_barbell_bench_press":"assets/exercises/inclined_barwell_bench_press.png","dumbbell_bench_press":"assets/exercises/dumbel_bench_press.png","incline_dumbbell_press":"assets/exercises/inclined_dumbel_press.png","pec_deck_machine_fly":"assets/exercises/pecdeck_fly.png","cable_chest_fly":"assets/exercises/cabel_chest_fly.png","lat_pulldown":"assets/exercises/latt_pull_down.png","barbell_row":"assets/exercises/barbell_row.png","seated_cable_row":"assets/exercises/seated_cabel_row.png","t_bar_row":"assets/exercises/t_bar.png","straight_arm_pulldown":"assets/exercises/straight_arm_pulldown.png","dumbbell_pullover":"assets/exercises/dumbel_pullover.png","barbell_squat":"assets/exercises/barbell_squat.png","leg_press":"assets/exercises/leg_press.png","leg_extension":"assets/exercises/leg_extention.png","leg_curl":"assets/exercises/leg_curl.png","hip_thrust":"assets/exercises/hip_thrust.png","calf_raise":"assets/exercises/calf_raises.png","barbell_curl":"assets/exercises/barbell_curl.png","hammer_curl":"assets/exercises/hammer_curl.png","preacher_curl":"assets/exercises/preacher_curl.png","triceps_pushdown":"assets/exercises/tricep_pushdown.png","overhead_triceps_extension":"assets/exercises/overhead_tricep_extention.png","skull_crushers":"assets/exercises/skull_crusher.png","dumbbell_shoulder_press":"assets/exercises/dumbell_shoulder_press.png","dumbbell_lateral_raise":"assets/exercises/dumbell_lateral_raise.png","front_dumbbell_raise":"assets/exercises/front_dumbel_raise.png","reverse_pec_deck":"assets/exercises/reverse_pec_deck.png","face_pull":"assets/exercises/face_pull.png"};
@@ -391,7 +463,7 @@ function applyProfileToForm(p){
 }
 function enterWorkout(p){
   applyProfileToForm(p);localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',p.level);
-  $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');$('historyCard').classList.remove('hidden');
+  $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');$('summaryCard').classList.remove('hidden');$('historyCard').classList.remove('hidden');
   state.workoutStart=Date.now();renderParts();renderExercises();renderHistory();
 }
 async function loadProfile(){
@@ -399,7 +471,7 @@ async function loadProfile(){
   if(cloud){enterWorkout(cloud);return}
   const local=JSON.parse(localStorage.getItem('repfuel_profile')||'null');
   if(local) enterWorkout(local);
-  else{$('profileCard').classList.remove('hidden');$('workoutCard').classList.add('hidden');$('historyCard').classList.add('hidden');}
+  else{$('profileCard').classList.remove('hidden');$('workoutCard').classList.add('hidden');$('summaryCard').classList.add('hidden');$('historyCard').classList.add('hidden');}
 }
 
 $('saveProfile').onclick=async()=>{
@@ -413,7 +485,16 @@ $('exerciseSelect').onchange=selectExercise;
 $('startSet').onclick=startSet;$('finishSet').onclick=finishSet;$('addSet').onclick=addSet;$('finishExercise').onclick=finishExercise;
 $('finishWorkout').onclick=finishWorkout;$('startAnother').onclick=startAnotherWorkout;
 $('clearHistory').onclick=async()=>{if(!confirm('Clear all cloud workout history for this account?'))return;try{await deleteCloudHistory();localStorage.removeItem('repfuel_history');await renderHistory();$('saveStatus').textContent='☁ Cloud history cleared'}catch(e){alert('Could not clear cloud history: '+e.message)}};
-$('editProfile').onclick=()=>{$('workoutCard').classList.add('hidden');$('historyCard').classList.add('hidden');$('profileCard').classList.remove('hidden')};
+$('editProfile').onclick=()=>{$('workoutCard').classList.add('hidden');$('summaryCard').classList.add('hidden');$('historyCard').classList.add('hidden');$('profileCard').classList.remove('hidden')};
+function showRepFuelSection(section){
+  const map={workout:'workoutCard',progress:'summaryCard',history:'historyCard'};
+  const target=map[section];
+  if(!target)return;
+  ['workoutCard','summaryCard','historyCard'].forEach(id=>{const el=$(id);if(el)el.classList.remove('focus-section')});
+  const el=$(target); if(el){el.classList.add('focus-section');el.scrollIntoView({behavior:'smooth',block:'start'});}
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.section===section));
+  if(section!=='workout') renderHistory();
+}
 $('newWorkout').onclick=()=>{
   if(confirm('Reset the current workout? Saved history will remain on this device.')) location.reload();
 };
