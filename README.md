@@ -157,3 +157,7 @@ Fixed category initialization and exercise selection. Body-part buttons now rend
 
 ## v1.4.0 — Approved visual direction
 The workout screen follows the approved RepFuel reference: compact dark navigation, neon-lime active state, horizontal category filters, five-column exercise grid on desktop, search/list controls, and a sticky right-hand exercise detail panel.
+
+
+## v1.5.0 — Representative exercise images
+The supplied picture dataset is integrated as representative exercise visuals. Exercises without a supplied picture remain selectable in the list and show a clean placeholder until a visual is added.

@@ -9,7 +9,7 @@ const EXERCISES = {
   Cardio:[['Treadmill — Walking','treadmill','treadmill_walk'],['Treadmill — Running','treadmill','treadmill_run'],['Treadmill — Incline Walking','treadmill','treadmill_incline_walk'],['Stationary Bike','bike','bike_stationary'],['Spin Bike','bike','spin_bike'],['Elliptical / Cross Trainer','machine','elliptical'],['StairMaster','machine','stair_climber'],['Rowing Machine','machine','rower'],['Air Bike','bike','air_bike'],['SkiErg','machine','skierg']]
 };
 
-const MODEL_VERSION='1.4.0';
+const MODEL_VERSION='1.5.0';
 const REST_MET=1.5;
 const BASE_MET={
  heavy_compound:5.5,db_compound:5.0,machine_compound:4.2,isolation:3.7,
@@ -52,52 +52,18 @@ function renderHistory(){
 }
 
 
+const EXERCISE_IMAGE_MAP = {"barbell_bench_press":"assets/exercises/barbell_press.png","incline_barbell_bench_press":"assets/exercises/inclined_barwell_bench_press.png","dumbbell_bench_press":"assets/exercises/dumbel_bench_press.png","incline_dumbbell_press":"assets/exercises/inclined_dumbel_press.png","pec_deck_machine_fly":"assets/exercises/pecdeck_fly.png","cable_chest_fly":"assets/exercises/cabel_chest_fly.png","lat_pulldown":"assets/exercises/latt_pull_down.png","barbell_row":"assets/exercises/barbell_row.png","seated_cable_row":"assets/exercises/seated_cabel_row.png","t_bar_row":"assets/exercises/t_bar.png","straight_arm_pulldown":"assets/exercises/straight_arm_pulldown.png","dumbbell_pullover":"assets/exercises/dumbel_pullover.png","barbell_squat":"assets/exercises/barbell_squat.png","leg_press":"assets/exercises/leg_press.png","leg_extension":"assets/exercises/leg_extention.png","leg_curl":"assets/exercises/leg_curl.png","hip_thrust":"assets/exercises/hip_thrust.png","calf_raise":"assets/exercises/calf_raises.png","barbell_curl":"assets/exercises/barbell_curl.png","hammer_curl":"assets/exercises/hammer_curl.png","preacher_curl":"assets/exercises/preacher_curl.png","triceps_pushdown":"assets/exercises/tricep_pushdown.png","overhead_triceps_extension":"assets/exercises/overhead_tricep_extention.png","skull_crushers":"assets/exercises/skull_crusher.png","dumbbell_shoulder_press":"assets/exercises/dumbell_shoulder_press.png","dumbbell_lateral_raise":"assets/exercises/dumbell_lateral_raise.png","front_dumbbell_raise":"assets/exercises/front_dumbel_raise.png","reverse_pec_deck":"assets/exercises/reverse_pec_deck.png","face_pull":"assets/exercises/face_pull.png"};
+function findExerciseImage(e){const key=(e.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');return EXERCISE_IMAGE_MAP[key]||null;}
 function exerciseVisual(e){
-  const f=(e.family||'').toLowerCase(), eq=(e.equipment||'').toLowerCase();
-  let type='upper', movement='press';
-  if(f.includes('squat')||f.includes('lunge')||f.includes('leg')||f.includes('hinge')||f.includes('deadlift')||f.includes('hip')||f.includes('calf')){type='lower';movement='leg'}
-  else if(f.includes('curl')){type='arms';movement='curl'}
-  else if(f.includes('row')||f.includes('pull')||f.includes('pullover')){type='back';movement='pull'}
-  else if(f.includes('core')||f.includes('plank')||f.includes('mountain')){type='core';movement='core'}
-  else if(f.includes('treadmill')||f.includes('bike')||f.includes('elliptical')||f.includes('stair')||f.includes('rower')||f.includes('skierg')){type='cardio';movement='cardio'}
-
-  const equipment=(x,side=0)=>{
-    const shift=side?2:0;
-    if(eq.includes('barbell')) return `<g class="eq"><path d="M${18+shift} 64h64" /><path d="M${22+shift} 54v20M${29+shift} 50v28M${75+shift} 54v20M${68+shift} 50v28"/></g>`;
-    if(eq.includes('dumbbell')) return `<g class="eq"><path d="M${28+shift} 64h34"/><path d="M${24+shift} 57v14M${31+shift} 54v20M${59+shift} 57v14M${66+shift} 54v20"/></g>`;
-    if(eq.includes('cable')) return `<g class="eq"><path d="M${14+shift} 24v62M${14+shift} 44q28 10 55 24"/><circle cx="${69+shift}" cy="68" r="4"/></g>`;
-    if(eq.includes('machine')) return `<g class="eq"><rect x="${72+shift}" y="30" width="16" height="65" rx="3"/><path d="M68 96h25M80 30v-8"/></g>`;
-    if(eq.includes('treadmill')) return `<g class="eq"><path d="M30 92h62l-10 9H20zM31 86L22 45h35"/></g>`;
-    if(eq.includes('bike')) return `<g class="eq"><circle cx="${30+shift}" cy="91" r="14"/><circle cx="${82+shift}" cy="91" r="14"/><path d="M30 91l24-32 28 32H48zM54 59l10-13"/></g>`;
-    return `<g class="eq"><path d="M22 98h66"/></g>`;
-  };
-
-  const person=(phase)=>{
-    const upper=phase==='start' ? 'M47 47L34 60M47 47L60 60' : 'M47 47L28 32M47 47L66 32';
-    const lower=type==='lower'
-      ? (phase==='start'?'M47 70L33 83L27 101M47 70L61 83L68 101':'M47 70L39 91L31 104M47 70L57 91L70 98')
-      : 'M47 70L38 100M47 70L56 100';
-    const torso=type==='core'?'M39 43L58 52L73 64L58 70':'M47 42L47 70';
-    return `<g class="person"><circle cx="47" cy="31" r="7"/><path d="${torso} ${upper} ${lower}"/></g>`;
-  };
-
-  const frame=(phase)=>{
-    const eqShift=phase==='start'?0:4;
-    return `<g transform="translate(${phase==='start'?0:105},0) scale(.88)">
-      <text class="phase" x="6" y="14">${phase.toUpperCase()}</text>
-      ${equipment(eqShift,phase==='finish'?1:0)}
-      ${person(phase)}
-    </g>`;
-  };
-
-  return `<div class="exercise-art professional-art" aria-label="${e.name} exercise demonstration">
-    <svg viewBox="0 0 210 112" role="img" aria-label="${e.name} start and finish positions">
-      <defs><linearGradient id="artbg${Math.random().toString(36).slice(2)}" x1="0" x2="1"><stop offset="0" stop-color="#101512"/><stop offset="1" stop-color="#18201b"/></linearGradient></defs>
-      <rect width="210" height="112" fill="#111612"/>
-      <line x1="105" y1="22" x2="105" y2="105" class="divider"/>
-      ${frame('start')}${frame('finish')}
-    </svg>
-    <div class="art-label">${e.equipment||'Exercise'} · START → FINISH</div>
+  const image=findExerciseImage(e);
+  if(image){
+    return `<div class="exercise-art real-art">
+      <img src="${image}" alt="${e.name} exercise demonstration" loading="lazy">
+      <div class="real-art-badge">REP FUEL · DEMO</div>
+    </div>`;
+  }
+  return `<div class="exercise-art fallback-art" aria-label="${e.name} visual placeholder">
+    <div><strong>${e.name}</strong><span>Visual guide not supplied yet</span></div>
   </div>`;
 }
 const CATEGORY_NAMES=['Chest','Back','Legs','Biceps','Triceps','Shoulders','Abs / Core','Cardio'];
