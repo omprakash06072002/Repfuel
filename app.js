@@ -35,22 +35,64 @@ const sessionId=localStorage.getItem('repfuel_session')||crypto.randomUUID();
 localStorage.setItem('repfuel_session',sessionId);
 
 let state={parts:[],exerciseOptions:[],exercise:null,sets:[],draft:null,workoutStart:null,setStart:null,timer:null,exercises:[],workoutId:crypto.randomUUID(),finished:false};
-function getHistory(){return JSON.parse(localStorage.getItem('repfuel_history')||'[]')}
-function renderHistory(){
-  const h=getHistory(),sessions={};
-  h.forEach(x=>{const key=x.savedAt?.slice(0,10)||'unknown';(sessions[key]??=[]).push(x)});
-  const days=Object.entries(sessions).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14);
-  $('historyList').innerHTML=days.length?days.map(([day,items])=>{
-    const kcal=items.reduce((a,x)=>a+(x.estimatedNetKcal||0),0),volume=items.reduce((a,x)=>a+(x.totalVolumeKg||0),0);
-    const ex=[...new Set(items.map(x=>x.exercise))];
-    return `<div class="history-day"><div><strong>${new Date(day+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}</strong><span>${ex.length} exercise${ex.length===1?'':'s'}</span></div><div><strong>${Math.round(kcal)} kcal</strong><span>${Math.round(volume).toLocaleString()} kg volume</span></div></div>`
-  }).join(''):'<p class="muted">No completed workouts yet. Your history will appear here.</p>';
-  $('historyKcal').textContent=Math.round(h.reduce((a,x)=>a+(x.estimatedNetKcal||0),0));
-  $('historyVolume').textContent=Math.round(h.reduce((a,x)=>a+(x.totalVolumeKg||0),0)).toLocaleString()+' kg';
-  $('historyDays').textContent=new Set(h.map(x=>x.savedAt?.slice(0,10))).size;
-  $('historySets').textContent=h.reduce((a,x)=>a+(x.sets||0),0);
+function getHistory(){
+  return JSON.parse(localStorage.getItem('repfuel_history')||'[]');
 }
 
+function flattenCloudWorkouts(rows){
+  return (rows||[]).flatMap(w=>{
+    const exercises=Array.isArray(w.exercises)?w.exercises:[];
+    return exercises.map(ex=>({
+      ...ex,
+      savedAt:w.ended_at||w.created_at,
+      estimatedNetKcal:ex.result?.net||0,
+      totalVolumeKg:ex.result?.volume||0,
+      sets:ex.sets?.length||0,
+      workoutId:w.id,
+      userId:w.user_id
+    }));
+  });
+}
+
+async function fetchCloudHistory(){
+  if(!window.repSupabase?.auth)return [];
+  const {data:{user}}=await repSupabase.auth.getUser();
+  if(!user)return [];
+  const {data,error}=await repSupabase
+    .from('repfuel_workouts')
+    .select('id,user_id,started_at,ended_at,exercises,summary,created_at')
+    .eq('user_id',user.id)
+    .order('ended_at',{ascending:false})
+    .limit(100);
+  if(error){console.error('History fetch failed:',error);return [];}
+  return data||[];
+}
+
+async function renderHistory(){
+  const rows=await fetchCloudHistory();
+  const h=flattenCloudWorkouts(rows);
+  const sessions={};
+  h.forEach(x=>{const key=x.savedAt?.slice(0,10)||'unknown';(sessions[key]??=[]).push(x)});
+  const days=Object.entries(sessions).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14);
+  const list=$('historyList');
+  if(list) list.innerHTML=days.length?days.map(([day,items])=>{
+    const kcal=items.reduce((a,x)=>a+(x.estimatedNetKcal||0),0);
+    const volume=items.reduce((a,x)=>a+(x.totalVolumeKg||0),0);
+    const ex=[...new Set(items.map(x=>x.exercise))];
+    return `<div class="history-day"><div><strong>${new Date(day+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}</strong><span>${ex.length} exercise${ex.length===1?'':'s'}</span></div><div><strong>${Math.round(kcal)} kcal</strong><span>${Math.round(volume).toLocaleString()} kg volume</span></div></div>`
+  }).join(''):'<p class="muted">No cloud workouts yet. Finish a workout and it will appear here.</p>';
+
+  const totalKcal=h.reduce((a,x)=>a+(x.estimatedNetKcal||0),0);
+  const totalVolume=h.reduce((a,x)=>a+(x.totalVolumeKg||0),0);
+  if($('historyKcal')) $('historyKcal').textContent=Math.round(totalKcal);
+  if($('historyVolume')) $('historyVolume').textContent=Math.round(totalVolume).toLocaleString()+' kg';
+  if($('historyDays')) $('historyDays').textContent=new Set(h.map(x=>x.savedAt?.slice(0,10)).filter(Boolean)).size;
+  if($('historySets')) $('historySets').textContent=h.reduce((a,x)=>a+(x.sets||0),0);
+  if($('progressWorkouts')) $('progressWorkouts').textContent=rows.length;
+  if($('progressVolume')) $('progressVolume').textContent=Math.round(totalVolume).toLocaleString()+' kg';
+  const bestVolume=rows.reduce((best,w)=>Math.max(best,Number(w.summary?.volume||0)),0);
+  if($('progressBest')) $('progressBest').textContent=Math.round(bestVolume).toLocaleString()+' kg';
+}
 
 const EXERCISE_IMAGE_MAP = {"barbell_bench_press":"assets/exercises/barbell_press.png","incline_barbell_bench_press":"assets/exercises/inclined_barwell_bench_press.png","dumbbell_bench_press":"assets/exercises/dumbel_bench_press.png","incline_dumbbell_press":"assets/exercises/inclined_dumbel_press.png","pec_deck_machine_fly":"assets/exercises/pecdeck_fly.png","cable_chest_fly":"assets/exercises/cabel_chest_fly.png","lat_pulldown":"assets/exercises/latt_pull_down.png","barbell_row":"assets/exercises/barbell_row.png","seated_cable_row":"assets/exercises/seated_cabel_row.png","t_bar_row":"assets/exercises/t_bar.png","straight_arm_pulldown":"assets/exercises/straight_arm_pulldown.png","dumbbell_pullover":"assets/exercises/dumbel_pullover.png","barbell_squat":"assets/exercises/barbell_squat.png","leg_press":"assets/exercises/leg_press.png","leg_extension":"assets/exercises/leg_extention.png","leg_curl":"assets/exercises/leg_curl.png","hip_thrust":"assets/exercises/hip_thrust.png","calf_raise":"assets/exercises/calf_raises.png","barbell_curl":"assets/exercises/barbell_curl.png","hammer_curl":"assets/exercises/hammer_curl.png","preacher_curl":"assets/exercises/preacher_curl.png","triceps_pushdown":"assets/exercises/tricep_pushdown.png","overhead_triceps_extension":"assets/exercises/overhead_tricep_extention.png","skull_crushers":"assets/exercises/skull_crusher.png","dumbbell_shoulder_press":"assets/exercises/dumbell_shoulder_press.png","dumbbell_lateral_raise":"assets/exercises/dumbell_lateral_raise.png","front_dumbbell_raise":"assets/exercises/front_dumbel_raise.png","reverse_pec_deck":"assets/exercises/reverse_pec_deck.png","face_pull":"assets/exercises/face_pull.png"};
 function findExerciseImage(e){const key=(e.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');return EXERCISE_IMAGE_MAP[key]||null;}
@@ -243,25 +285,71 @@ function estimate(e,sets){
   const uncertainty=isCardio(e.family)?Math.max(5,net*.10+3):Math.max(7,net*.20+4);
   return {net,gross,low:Math.max(0,net-uncertainty),high:net+uncertainty,active,rest,volume:sets.reduce((a,s)=>a+s.load*s.reps,0),met,anchor,modelVersion:MODEL_VERSION};
 }
-async function saveEvent(e,r){
+async function saveWorkoutToCloud(){
+  if(!window.repSupabase?.auth)return {ok:false,error:'Supabase client not configured'};
+  const {data:{user}}=await repSupabase.auth.getUser();
+  if(!user)return {ok:false,error:'No authenticated user'};
   const p=profile();
-  const payload={consent:p.consent,sessionId,workoutId:state.workoutId,modelVersion:MODEL_VERSION,bodyWeightKg:p.weight,heightCm:p.height,ageYears:p.age,sex:p.sex,bodyFatPercent:p.bodyFat,trainingLevel:p.level,
-    bodyPart:e.bodyPart,exercise:e.name,equipment:e.equipment,exerciseFamily:e.family,loadKg:Math.max(...state.sets.map(s=>s.load),0),
-    reps:state.sets.reduce((a,s)=>a+s.reps,0),sets:state.sets.length,activeSeconds:r.active,restSeconds:r.rest,totalVolumeKg:r.volume,
-    estimatedNetKcal:r.net,estimateLowKcal:r.low,estimateHighKcal:r.high,publishedAnchorKcal:r.anchor,savedAt:new Date().toISOString()};
-  const history=getHistory();history.push(payload);localStorage.setItem('repfuel_history',JSON.stringify(history.slice(-500)));
-  localStorage.setItem('repfuel_last_workout',JSON.stringify(payload));renderHistory();
-  if(!p.consent){$('saveStatus').textContent='Saved on this device';return}
-  try{const x=await fetch('/api/workout-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});$('saveStatus').textContent=x.ok?'Anonymous data saved':'Saved locally'}catch{$('saveStatus').textContent='Saved locally'}
+  const payload={
+    id:state.workoutId,user_id:user.id,
+    started_at:new Date(state.workoutStart||Date.now()).toISOString(),
+    ended_at:new Date().toISOString(),
+    profile:{age:p.age,sex:p.sex,height_cm:p.height,weight_kg:p.weight,body_fat_percent:p.bodyFat,training_level:p.level,consent:p.consent},
+    exercises:state.exercises.map(x=>({bodyPart:x.exercise.bodyPart,name:x.exercise.name,equipment:x.exercise.equipment,family:x.exercise.family,sets:x.sets,result:x.result})),
+    summary:{
+      volume:state.exercises.reduce((a,x)=>a+x.result.volume,0),
+      active:state.exercises.reduce((a,x)=>a+x.result.active,0),
+      rest:state.exercises.reduce((a,x)=>a+x.result.rest,0),
+      netKcal:state.exercises.reduce((a,x)=>a+x.result.net,0),
+      low:state.exercises.reduce((a,x)=>a+x.result.low,0),
+      high:state.exercises.reduce((a,x)=>a+x.result.high,0),
+      sets:state.exercises.reduce((a,x)=>a+x.sets.length,0),
+      modelVersion:MODEL_VERSION
+    }
+  };
+  const {error}=await repSupabase.from('repfuel_workouts').upsert(payload,{onConflict:'id'});
+  if(error){console.error('Cloud workout save failed:',error);return {ok:false,error:error.message};}
+  return {ok:true};
 }
+
+async function saveProfileToCloud(p){
+  if(!window.repSupabase?.auth)return {ok:false,error:'Supabase client not configured'};
+  const {data:{user}}=await repSupabase.auth.getUser();
+  if(!user)return {ok:false,error:'No authenticated user'};
+  const row={user_id:user.id,age:p.age,sex:p.sex,height_cm:p.height,weight_kg:p.weight,body_fat_percent:p.bodyFat,training_level:p.level,consent:p.consent,updated_at:new Date().toISOString()};
+  const {error}=await repSupabase.from('repfuel_profiles').upsert(row,{onConflict:'user_id'});
+  if(error){console.error('Cloud profile save failed:',error);return {ok:false,error:error.message};}
+  return {ok:true};
+}
+
+async function loadProfileFromCloud(){
+  if(!window.repSupabase?.auth)return null;
+  const {data:{user}}=await repSupabase.auth.getUser();
+  if(!user)return null;
+  const {data,error}=await repSupabase.from('repfuel_profiles').select('*').eq('user_id',user.id).maybeSingle();
+  if(error){console.error('Cloud profile fetch failed:',error);return null;}
+  if(!data)return null;
+  const p={age:data.age||0,sex:data.sex||'male',height:data.height_cm||0,weight:data.weight_kg||0,bodyFat:data.body_fat_percent??null,consent:!!data.consent,level:data.training_level||'beginner'};
+  localStorage.setItem('repfuel_profile',JSON.stringify(p));
+  localStorage.setItem('repfuel_level',p.level);
+  return p;
+}
+
+async function deleteCloudHistory(){
+  if(!window.repSupabase?.auth)return;
+  const {data:{user}}=await repSupabase.auth.getUser();
+  if(!user)return;
+  const {error}=await repSupabase.from('repfuel_workouts').delete().eq('user_id',user.id);
+  if(error)throw error;
+}
+
 function finishExercise(){
   if(!state.exercise||!state.sets.length)return;
   const r=estimate(state.exercise,state.sets);
   state.exercises.push({exercise:state.exercise,sets:[...state.sets],result:r});
-  saveEvent(state.exercise,r);
   state.sets=[];state.draft=null;renderSets();renderLiveStats();renderLiveStats();$('finishExercise').disabled=true;$('startSet').disabled=true;$('finishSet').disabled=true;$('addSet').disabled=true;renderSummary();
 }
-function finishWorkout(){
+async function finishWorkout(){
   if(state.setStart) finishSet();
   if(state.draft) addSet();
   if(state.exercise && state.sets.length) finishExercise();
@@ -269,7 +357,11 @@ function finishWorkout(){
   state.finished=true;renderSummary();
   $('workoutCard').classList.add('hidden');$('summaryCard').classList.remove('hidden');$('historyCard').classList.remove('hidden');
   $('workoutComplete').classList.remove('hidden');$('workoutComplete').scrollIntoView({behavior:'smooth',block:'start'});
+  const result=await saveWorkoutToCloud();
+  if(result.ok){$('saveStatus').textContent='☁ Workout synced';await renderHistory();}
+  else{$('saveStatus').textContent='Saved locally · cloud sync failed';console.error(result.error);}
 }
+
 function startAnotherWorkout(){location.reload()}
 function renderLiveStats(){
   const exercises=state.exercises||[];
@@ -291,24 +383,54 @@ function renderSummary(){
   $('summaryExercises').innerHTML=state.exercises.map(x=>`<div class="exercise-summary"><strong>${x.exercise.name}</strong><div class="muted">${x.sets.length} sets · ${x.sets.reduce((a,s)=>a+s.reps,0)} reps · ${Math.round(x.result.net)} kcal · MET ${fmt(x.result.met)}</div></div>`).join('');
   $('completeSub').textContent=`${state.exercises.length} exercise${state.exercises.length===1?'':'s'} recorded.`;
 }
-function loadProfile(){
-  const p=JSON.parse(localStorage.getItem('repfuel_profile')||'null');if(!p)return;
-  $('age').value=p.age||'';$('sex').value=p.sex||'male';$('height').value=p.height||'';$('bodyWeight').value=p.weight||'';$('bodyFat').value=p.bodyFat??'';$('level').value=p.level||localStorage.getItem('repfuel_level')||'beginner';$('consent').checked=!!p.consent;
-  $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderExercises();renderHistory();
+function applyProfileToForm(p){
+  $('age').value=p.age||'';$('sex').value=p.sex||'male';$('height').value=p.height||'';
+  $('bodyWeight').value=p.weight||'';$('bodyFat').value=p.bodyFat??'';
+  $('level').value=p.level||'beginner';$('consent').checked=!!p.consent;
+  if($('progressLevel')) $('progressLevel').textContent=(p.level||'beginner').replace(/^./,c=>c.toUpperCase());
 }
-$('saveProfile').onclick=()=>{const p=profile();p.level=$('level').value;if(!p.age||!p.height||!p.weight){alert('Please enter age, height and weight.');return}localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',$('level').value);$('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');state.workoutStart=Date.now();renderParts();renderExercises();renderHistory()};
+function enterWorkout(p){
+  applyProfileToForm(p);localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',p.level);
+  $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');$('historyCard').classList.remove('hidden');
+  state.workoutStart=Date.now();renderParts();renderExercises();renderHistory();
+}
+async function loadProfile(){
+  const cloud=await loadProfileFromCloud();
+  if(cloud){enterWorkout(cloud);return}
+  const local=JSON.parse(localStorage.getItem('repfuel_profile')||'null');
+  if(local) enterWorkout(local);
+  else{$('profileCard').classList.remove('hidden');$('workoutCard').classList.add('hidden');$('historyCard').classList.add('hidden');}
+}
+
+$('saveProfile').onclick=async()=>{
+  const p=profile();p.level=$('level').value;
+  if(!p.age||!p.height||!p.weight){alert('Please enter age, height and weight.');return}
+  localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',$('level').value);
+  const cloud=await saveProfileToCloud(p);$('saveStatus').textContent=cloud.ok?'☁ Profile synced':'Local profile';enterWorkout(p);
+};
+
 $('exerciseSelect').onchange=selectExercise;
 $('startSet').onclick=startSet;$('finishSet').onclick=finishSet;$('addSet').onclick=addSet;$('finishExercise').onclick=finishExercise;
 $('finishWorkout').onclick=finishWorkout;$('startAnother').onclick=startAnotherWorkout;
-$('clearHistory').onclick=()=>{if(confirm('Clear workout history from this device?')){localStorage.removeItem('repfuel_history');renderHistory()}};
+$('clearHistory').onclick=async()=>{if(!confirm('Clear all cloud workout history for this account?'))return;try{await deleteCloudHistory();localStorage.removeItem('repfuel_history');await renderHistory();$('saveStatus').textContent='☁ Cloud history cleared'}catch(e){alert('Could not clear cloud history: '+e.message)}};
 $('editProfile').onclick=()=>{$('workoutCard').classList.add('hidden');$('historyCard').classList.add('hidden');$('profileCard').classList.remove('hidden')};
 $('newWorkout').onclick=()=>{
   if(confirm('Reset the current workout? Saved history will remain on this device.')) location.reload();
 };
-function bootRepFuel(){
-  renderParts();
-  renderExercises();
-  loadProfile();
+async function bootRepFuel(){
+  renderParts();renderExercises();
+  if(window.repSupabase?.auth){
+    try{
+      const {data:{session}}=await repSupabase.auth.getSession();
+      if(!session){
+        const {data,error}=await repSupabase.auth.signInAnonymously();
+        if(error)throw error;
+      }
+      $('saveStatus').textContent='☁ Cloud ready';
+    }catch(e){console.error('Supabase auth failed:',e);$('saveStatus').textContent='Local mode';}
+  }else $('saveStatus').textContent='Local mode';
+  await loadProfile();await renderHistory();
 }
+
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootRepFuel);
 else bootRepFuel();

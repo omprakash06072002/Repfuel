@@ -83,14 +83,16 @@
 
 <section id="summaryCard" class="card hidden">
   <div class="complete-banner hidden" id="workoutComplete"><div class="check">✓</div><div><h2>Workout complete</h2><p id="completeSub" class="muted"></p></div><button id="startAnother" class="primary">New workout</button></div>
-  <p class="eyebrow">03 · Workout summary</p><h2>Today's numbers</h2>
-  <div class="stats"><div><span>Estimated net kcal</span><strong id="sumKcal">0–0</strong></div><div><span>Workout volume</span><strong id="sumVolume">0 kg</strong></div><div><span>Active time</span><strong id="sumActive">0 min</strong></div><div><span>Total time</span><strong id="sumTime">0 min</strong></div></div>
+  <p class="eyebrow">03 · PROGRESS</p><h2>Today's numbers</h2>
+  <div class="stats"><div><span>Estimated net kcal</span><strong id="sumKcal">0–0</strong></div><div><span>Workout volume</span><strong id="sumVolume">0 kg</strong></div><div><span>Active time</span><strong id="sumActive">0 min</strong></div><div><span>Total time</span><strong id="sumTime">0 min</strong></div></div><div class="stats compact"><div><span>Cloud workouts</span><strong id="progressWorkouts">0</strong></div><div><span>All-time volume</span><strong id="progressVolume">0 kg</strong></div><div><span>Best workout volume</span><strong id="progressBest">0 kg</strong></div><div><span>Training level</span><strong id="progressLevel">—</strong></div></div>
   <div id="summaryExercises"></div><p class="notice">Estimates are not laboratory measurements. Resistance training uses exercise-family anchors, set timing and workload features; cardio uses activity-specific anchors. The range reflects uncertainty.</p>
 </section>
 
 <section id="historyCard" class="card hidden">
-  <div class="section-head"><div><p class="eyebrow">04 · Your progress</p><h2>History on this device</h2><p class="muted">Your history stays in this browser unless you choose anonymous data sharing.</p></div><button id="clearHistory" class="ghost">Clear history</button></div>
+  <div class="section-head"><div><p class="eyebrow">04 · Your progress</p><h2>Cloud history</h2><p class="muted">Your workouts are linked to your RepFuel user and protected by Supabase Row Level Security.</p></div><button id="clearHistory" class="ghost">Clear history</button></div>
   <div class="stats compact"><div><span>Estimated kcal</span><strong id="historyKcal">0</strong></div><div><span>Total volume</span><strong id="historyVolume">0 kg</strong></div><div><span>Workout days</span><strong id="historyDays">0</strong></div><div><span>Sets logged</span><strong id="historySets">0</strong></div></div>
   <div id="historyList" class="history-list"></div>
 </section>
-</main><script src="app.js"></script></body></html>
+</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script></body></html>
