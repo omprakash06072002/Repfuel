@@ -3,8 +3,8 @@
  Paste ONLY your Project URL and PUBLISHABLE key.
  Never put a service_role/secret key in GitHub Pages.
 */
-window.REPFUEL_SUPABASE_URL = 'https://wukvqhuwtikczsgdfvws.supabase.co';
-window.REPFUEL_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_z42tPwWWCnZjwKr3AfxIZg_yTjm-Axq';
+window.REPFUEL_SUPABASE_URL = 'https://YOUR-PROJECT-ID.supabase.co';
+window.REPFUEL_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_YOUR_KEY_HERE';
 
 if (window.supabase && window.REPFUEL_SUPABASE_URL.startsWith('https://')
     && !window.REPFUEL_SUPABASE_URL.includes('YOUR-PROJECT-ID')
