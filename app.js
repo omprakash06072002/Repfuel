@@ -607,6 +607,25 @@ function showAccountError(id,message){
   el.textContent=message; el.classList.remove('hidden');
 }
 
+function getAccountRedirectUrl(){
+  return window.location.origin + window.location.pathname;
+}
+
+function explainAccountError(error){
+  const message=String(error?.message||error||'');
+  const lower=message.toLowerCase();
+  if(lower.includes('manual') && lower.includes('link')){
+    return 'Supabase is blocking the account conversion. In Supabase open Authentication → Settings and enable Manual Linking, then try again.';
+  }
+  if(lower.includes('redirect') || lower.includes('url')){
+    return message + ' Make sure https://omprakash06072002.github.io/Repfuel/ is added to Supabase Authentication → URL Configuration → Redirect URLs.';
+  }
+  if(lower.includes('rate limit')){
+    return 'Supabase email sending is temporarily rate-limited. Wait a little and use Send again.';
+  }
+  return message || 'Could not start account creation.';
+}
+
 async function sendAccountVerification(){
   if(!window.repSupabase?.auth){showAccountError('accountFormError','Cloud account services are not available right now.');return;}
   const name=$('accountName').value.trim();
@@ -625,10 +644,13 @@ async function sendAccountVerification(){
 
   $('sendVerificationBtn').disabled=true;
   try{
-    const {error}=await repSupabase.auth.updateUser({
-      email,
-      data:{display_name:name}
-    });
+    const {error}=await repSupabase.auth.updateUser(
+      {
+        email,
+        data:{display_name:name}
+      },
+      {emailRedirectTo:getAccountRedirectUrl()}
+    );
     if(error)throw error;
 
     accountSetupEmail=email;
@@ -642,7 +664,8 @@ async function sendAccountVerification(){
     $('createAccountForm').classList.add('hidden');
     $('verificationStep').classList.remove('hidden');
   }catch(e){
-    showAccountError('accountFormError',e.message||'Could not start account creation.');
+    console.error('RepFuel account conversion failed:',e);
+    showAccountError('accountFormError',explainAccountError(e));
   }finally{
     $('sendVerificationBtn').disabled=false;
   }
@@ -652,30 +675,39 @@ async function resendAccountVerification(){
   if(!accountSetupEmail)return;
   $('resendVerificationBtn').disabled=true;
   try{
-    const {error}=await repSupabase.auth.resend({type:'email_change',email:accountSetupEmail});
+    const {error}=await repSupabase.auth.resend({
+      type:'email_change',
+      email:accountSetupEmail,
+      options:{emailRedirectTo:getAccountRedirectUrl()}
+    });
     if(error)throw error;
     $('verificationError').classList.add('hidden');
   }catch(e){
-    showAccountError('verificationError',e.message||'Could not resend the verification email.');
+    console.error('RepFuel verification resend failed:',e);
+    showAccountError('verificationError',explainAccountError(e));
   }finally{$('resendVerificationBtn').disabled=false;}
 }
 
 async function checkVerificationAndShowPassword(){
   $('finishVerificationBtn').disabled=true;
   try{
-    await repSupabase.auth.getSession();
-    const {data:{user},error}=await getCurrentAuthUser();
+    // Refresh the session so the browser receives the user state created by the email link.
+    const {error:refreshError}=await repSupabase.auth.refreshSession();
+    if(refreshError)throw refreshError;
+    const {data:{user},error}=await repSupabase.auth.getUser();
     if(error||!user)throw new Error('Could not read your RepFuel account.');
-    const verified=user.email_confirmed_at || (user.identities||[]).some(i=>i.provider==='email');
+    const verified=!!user.email_confirmed_at && !user.is_anonymous;
     if(!verified){
-      showAccountError('verificationError','We still cannot see the verification. Open the email link first, then return here and try again.');
+      showAccountError('verificationError','Verification is not visible yet. Open the latest email link, return to RepFuel, then press this button again.');
       return;
     }
+    accountSetupEmail=user.email||accountSetupEmail;
     $('verificationStep').classList.add('hidden');
     $('passwordStep').classList.remove('hidden');
     $('accountPassword').focus();
   }catch(e){
-    showAccountError('verificationError',e.message||'Verification check failed.');
+    console.error('RepFuel verification check failed:',e);
+    showAccountError('verificationError',explainAccountError(e));
   }finally{$('finishVerificationBtn').disabled=false;}
 }
 
@@ -689,6 +721,10 @@ async function setPermanentPassword(){
   try{
     const {data,error}=await repSupabase.auth.updateUser({password});
     if(error)throw error;
+    const {data:{user:verifiedUser},error:userError}=await repSupabase.auth.getUser();
+    if(userError||!verifiedUser||verifiedUser.is_anonymous||!verifiedUser.email){
+      throw new Error('The email was verified, but Supabase did not finish linking the permanent account. Please make sure Manual Linking is enabled in Supabase Authentication → Settings.');
+    }
 
     // Re-save the profile against the same user id.
     const p=profile();
@@ -702,7 +738,8 @@ async function setPermanentPassword(){
     $('saveStatus').textContent='☁ Account synced';
     alert('Your RepFuel account is ready. Your existing cloud workouts stay attached to this account.');
   }catch(e){
-    showAccountError('passwordError',e.message||'Could not set your password.');
+    console.error('RepFuel password setup failed:',e);
+    showAccountError('passwordError',explainAccountError(e));
   }finally{$('setPasswordBtn').disabled=false;}
 }
 
