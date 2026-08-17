@@ -72,6 +72,77 @@
   .topbar{gap:10px;overflow:hidden}.main-nav{display:flex;overflow-x:auto;justify-content:flex-start;flex:1;min-width:0}.main-nav::-webkit-scrollbar{display:none}.nav-item{flex:0 0 auto;font-size:11px}
 }
 </style>
+
+<style>
+/* RepFuel mobile navigation polish */
+@media (max-width: 700px){
+  .topbar{
+    position:sticky;
+    top:0;
+    z-index:100;
+    min-height:62px;
+    padding:10px 12px;
+    gap:8px;
+    overflow:visible;
+  }
+  .topbar .brand{min-width:0;flex:1}
+  .topbar .brand strong{font-size:16px}
+  .topbar .brand span{font-size:8px;white-space:nowrap}
+  .top-actions{flex:0 0 auto;gap:6px}
+  .top-actions .status{font-size:8px;padding:5px 7px;max-width:82px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .top-actions .top-btn{padding:7px 9px;font-size:10px}
+  .main-nav{
+    position:fixed;
+    left:10px;
+    right:10px;
+    bottom:10px;
+    z-index:200;
+    height:60px;
+    padding:5px;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:4px;
+    background:rgba(11,15,13,.96);
+    border:1px solid #29312C;
+    border-radius:18px;
+    box-shadow:0 12px 35px rgba(0,0,0,.45);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    overflow:visible;
+  }
+  .main-nav .nav-item{
+    min-width:0;
+    width:100%;
+    height:48px;
+    padding:6px 3px;
+    border:0;
+    border-radius:13px;
+    background:transparent;
+    color:#9BA39D;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+    font-size:10px;
+    font-weight:800;
+    line-height:1;
+    white-space:nowrap;
+  }
+  .main-nav .nav-item.active{
+    color:#A3FF12;
+    background:#151A17;
+  }
+  main{
+    padding-bottom:88px;
+  }
+}
+@media (max-width:430px){
+  .topbar{padding-left:10px;padding-right:10px}
+  .top-actions .status{max-width:70px}
+  .main-nav{left:8px;right:8px;bottom:8px;height:58px}
+}
+</style>
 </head>
 <body>
 <header class="topbar"><div class="brand"><div class="logo">RF</div><div><strong>RepFuel</strong><span>workout intelligence · model 1.5.2</span></div></div><nav class="main-nav"><button type="button" class="nav-item active" data-section="workout" onclick="showRepFuelSection('workout')">⚒ Workout</button><button type="button" class="nav-item" data-section="progress" onclick="showRepFuelSection('progress')">▥ Progress</button><button type="button" class="nav-item" data-section="history" onclick="showRepFuelSection('history')">◷ History</button></nav><div class="top-actions"><div id="saveStatus" class="status">Local mode</div><button id="editProfile" class="top-btn">Profile</button></div></header>
