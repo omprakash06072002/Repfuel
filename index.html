@@ -8,13 +8,16 @@
 
 <style>
 .progress-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:22px 0}.progress-card{background:#151a17;border:1px solid #29312c;border-radius:14px;padding:16px}.progress-card span,.progress-card small{display:block;color:#9ba39d}.progress-card strong{display:block;font-size:1.45rem;color:#f5f7f5;margin:6px 0}.progress-section{margin-top:22px;border-top:1px solid #29312c;padding-top:18px}.progress-table{border:1px solid #29312c;border-radius:12px;overflow:hidden}.progress-row{display:grid;grid-template-columns:minmax(180px,2fr) .7fr .7fr 1fr 1.1fr;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid #29312c;color:#cbd2cd}.progress-row:first-child{border-top:0}.progress-row strong{color:#f5f7f5}.progress-header{background:#151a17;color:#9ba39d;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em}.history-day{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:16px 0;border-bottom:1px solid #29312c}.history-day:last-child{border-bottom:0}.history-day strong,.history-day span{display:block}.history-day span{color:#9ba39d;margin-top:4px;font-size:.9rem}.history-day>div:last-child{text-align:right}.focus-section{scroll-margin-top:90px}@media(max-width:900px){.progress-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.progress-row{grid-template-columns:1.7fr .7fr .7fr 1fr}.progress-row span:last-child,.progress-header span:last-child{display:none}}@media(max-width:600px){.progress-grid{grid-template-columns:1fr}.progress-row{grid-template-columns:1fr .8fr .8fr}.progress-row span:nth-child(4),.progress-header span:nth-child(4){display:none}.history-day{align-items:flex-start;flex-direction:column}.history-day>div:last-child{text-align:left}}
+
+.progress-empty{padding:28px 16px;border:1px dashed #29312c;border-radius:14px;text-align:center;background:#101511}.progress-empty strong{display:block;color:#f5f7f5;margin-bottom:6px}
+@media(max-width:700px){.progress-row{font-size:.88rem;gap:8px;padding:10px}.progress-row strong{min-width:120px}}
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand"><div class="logo">RF</div><div><strong>RepFuel</strong><span>workout intelligence · model 1.5.0</span></div></div><nav class="main-nav"><button type="button" class="nav-item active" data-section="workout" onclick="showRepFuelSection('workout')">⚒ Workout</button><button type="button" class="nav-item" data-section="progress" onclick="showRepFuelSection('progress')">▥ Progress</button><button type="button" class="nav-item" data-section="history" onclick="showRepFuelSection('history')">◷ History</button></nav><div class="top-actions"><div id="saveStatus" class="status">Local mode</div><button id="editProfile" class="top-btn">Profile</button></div></header>
+<header class="topbar"><div class="brand"><div class="logo">RF</div><div><strong>RepFuel</strong><span>workout intelligence · model 1.5.1</span></div></div><nav class="main-nav"><button type="button" class="nav-item active" data-section="workout" onclick="showRepFuelSection('workout')">⚒ Workout</button><button type="button" class="nav-item" data-section="progress" onclick="showRepFuelSection('progress')">▥ Progress</button><button type="button" class="nav-item" data-section="history" onclick="showRepFuelSection('history')">◷ History</button></nav><div class="top-actions"><div id="saveStatus" class="status">Local mode</div><button id="editProfile" class="top-btn">Profile</button></div></header>
 <main>
 <section id="profileCard" class="card hero-card">
-  <div class="hero-copy"><p class="eyebrow">RepFuel · Model 1.3.1</p><h1>Track your workout.<br><span>Let RepFuel handle the math.</span></h1><p class="hero-sub">Log sets in real time, see your training volume, and get a research-anchored calorie estimate without carrying a notebook around the gym.</p></div>
+  <div class="hero-copy"><p class="eyebrow">RepFuel · Model 1.5.1</p><h1>Track your workout.<br><span>Let RepFuel handle the math.</span></h1><p class="hero-sub">Log sets in real time, see your training volume, and get a research-anchored calorie estimate without carrying a notebook around the gym.</p></div>
   <div class="profile-box"><div class="section-head"><div><p class="eyebrow">01 · Your profile</p><h2>Set up once</h2></div></div>
     <div class="grid six"><label>Age<input id="age" type="number" min="13" max="100" placeholder="23"></label><label>Sex<select id="sex"><option value="male">Male</option><option value="female">Female</option><option value="other">Other / prefer not to say</option></select></label><label>Height (cm)<input id="height" type="number" min="100" max="230" placeholder="167"></label><label>Weight (kg)<input id="bodyWeight" type="number" min="25" max="300" step="0.1" placeholder="80"></label><label>Training level<select id="level"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="pro">Pro</option></select></label><label>Body fat % <span class="optional">optional</span><input id="bodyFat" type="number" min="3" max="70" step="0.1" placeholder="e.g. 18"></label></div>
     <label class="consent"><input id="consent" type="checkbox"><span>I agree to anonymous workout data being used to improve RepFuel. No name, email or account is required.</span></label>
@@ -85,11 +88,24 @@
   </aside>
 </section>
 
+
+<section id="progressCard" class="card hidden">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">03 · PROGRESS</p>
+      <h2>Your training progress</h2>
+      <p class="muted">Calculated from the workouts stored in your RepFuel cloud account.</p>
+    </div>
+    <button type="button" class="ghost" onclick="refreshRepFuelProgress()">↻ Refresh</button>
+  </div>
+  <div id="progressDashboard"></div>
+</section>
+
 <section id="summaryCard" class="card hidden">
   <div class="complete-banner hidden" id="workoutComplete"><div class="check">✓</div><div><h2>Workout complete</h2><p id="completeSub" class="muted"></p></div><button id="startAnother" class="primary">New workout</button></div>
   <p class="eyebrow">03 · PROGRESS</p><h2>Today's numbers</h2>
   <div class="stats"><div><span>Estimated net kcal</span><strong id="sumKcal">0–0</strong></div><div><span>Workout volume</span><strong id="sumVolume">0 kg</strong></div><div><span>Active time</span><strong id="sumActive">0 min</strong></div><div><span>Total time</span><strong id="sumTime">0 min</strong></div></div><div class="stats compact"><div><span>Cloud workouts</span><strong id="progressWorkouts">0</strong></div><div><span>All-time volume</span><strong id="progressVolume">0 kg</strong></div><div><span>Best workout volume</span><strong id="progressBest">0 kg</strong></div><div><span>Training level</span><strong id="progressLevel">—</strong></div></div>
-  <div id="summaryExercises"></div><div id="progressDashboard"></div><p class="notice">Estimates are not laboratory measurements. Resistance training uses exercise-family anchors, set timing and workload features; cardio uses activity-specific anchors. The range reflects uncertainty.</p>
+  <div id="summaryExercises"></div><p class="notice">Estimates are not laboratory measurements. Resistance training uses exercise-family anchors, set timing and workload features; cardio uses activity-specific anchors. The range reflects uncertainty.</p>
 </section>
 
 <section id="historyCard" class="card hidden">

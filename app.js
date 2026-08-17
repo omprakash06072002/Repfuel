@@ -427,7 +427,7 @@ async function finishWorkout(){
   if(state.exercise && state.sets.length) finishExercise();
   if(!state.exercises.length){alert('Add at least one exercise before finishing.');return}
   state.finished=true;renderSummary();
-  $('workoutCard').classList.add('hidden');$('summaryCard').classList.remove('hidden');$('historyCard').classList.remove('hidden');
+  $('workoutCard').classList.add('hidden');$('progressCard').classList.add('hidden');$('summaryCard').classList.remove('hidden');$('historyCard').classList.add('hidden');
   $('workoutComplete').classList.remove('hidden');$('workoutComplete').scrollIntoView({behavior:'smooth',block:'start'});
   const result=await saveWorkoutToCloud();
   if(result.ok){$('saveStatus').textContent='☁ Workout synced';await renderHistory();}
@@ -463,7 +463,7 @@ function applyProfileToForm(p){
 }
 function enterWorkout(p){
   applyProfileToForm(p);localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',p.level);
-  $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');$('summaryCard').classList.remove('hidden');$('historyCard').classList.remove('hidden');
+  $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');$('progressCard').classList.add('hidden');$('summaryCard').classList.add('hidden');$('historyCard').classList.add('hidden');
   state.workoutStart=Date.now();renderParts();renderExercises();renderHistory();
 }
 async function loadProfile(){
@@ -485,19 +485,49 @@ $('exerciseSelect').onchange=selectExercise;
 $('startSet').onclick=startSet;$('finishSet').onclick=finishSet;$('addSet').onclick=addSet;$('finishExercise').onclick=finishExercise;
 $('finishWorkout').onclick=finishWorkout;$('startAnother').onclick=startAnotherWorkout;
 $('clearHistory').onclick=async()=>{if(!confirm('Clear all cloud workout history for this account?'))return;try{await deleteCloudHistory();localStorage.removeItem('repfuel_history');await renderHistory();$('saveStatus').textContent='☁ Cloud history cleared'}catch(e){alert('Could not clear cloud history: '+e.message)}};
-$('editProfile').onclick=()=>{$('workoutCard').classList.add('hidden');$('summaryCard').classList.add('hidden');$('historyCard').classList.add('hidden');$('profileCard').classList.remove('hidden')};
-function showRepFuelSection(section){
-  const map={workout:'workoutCard',progress:'summaryCard',history:'historyCard'};
-  const target=map[section];
-  if(!target)return;
-  ['workoutCard','summaryCard','historyCard'].forEach(id=>{const el=$(id);if(el)el.classList.remove('focus-section')});
-  const el=$(target); if(el){el.classList.add('focus-section');el.scrollIntoView({behavior:'smooth',block:'start'});}
+$('editProfile').onclick=()=>{['workoutCard','progressCard','summaryCard','historyCard'].forEach(id=>$(id)?.classList.add('hidden'));$('profileCard').classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.section==='workout'));window.scrollTo({top:0,behavior:'smooth'});};
+async function showRepFuelSection(section){
+  const views=['workoutCard','progressCard','historyCard'];
+  const summary=$('summaryCard');
+
+  // Hide all primary views first.
+  views.forEach(id=>{const el=$(id);if(el)el.classList.add('hidden')});
+  if(summary) summary.classList.add('hidden');
+
+  // If the profile is not set up, keep the profile screen visible.
+  const p=JSON.parse(localStorage.getItem('repfuel_profile')||'null');
+  if(!p){
+    $('profileCard').classList.remove('hidden');
+    document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.section==='workout'));
+    return;
+  }
+  $('profileCard').classList.add('hidden');
+
+  if(section==='workout'){
+    $('workoutCard').classList.remove('hidden');
+  }else if(section==='progress'){
+    $('progressCard').classList.remove('hidden');
+    await refreshRepFuelProgress();
+  }else if(section==='history'){
+    $('historyCard').classList.remove('hidden');
+    await renderHistory();
+  }
+
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.section===section));
-  if(section!=='workout') renderHistory();
+  window.scrollTo({top:0,behavior:'smooth'});
 }
-$('newWorkout').onclick=()=>{
-  if(confirm('Reset the current workout? Saved history will remain on this device.')) location.reload();
-};
+
+async function refreshRepFuelProgress(){
+  const rows=await fetchCloudHistory();
+  renderProgressDashboard(rows);
+  if($('progressWorkouts')) $('progressWorkouts').textContent=rows.length;
+  const totalVolume=rows.reduce((a,w)=>a+Number(w.summary?.volume||0),0);
+  if($('progressVolume')) $('progressVolume').textContent=Math.round(totalVolume).toLocaleString()+' kg';
+  const best=rows.reduce((m,w)=>Math.max(m,Number(w.summary?.volume||0)),0);
+  if($('progressBest')) $('progressBest').textContent=Math.round(best).toLocaleString()+' kg';
+}
+
+$('newWorkout').onclick=()=>{if(confirm('Reset the current workout? Saved cloud history will remain in your account.')) location.reload();};
 async function bootRepFuel(){
   renderParts();renderExercises();
   if(window.repSupabase?.auth){
