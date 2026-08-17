@@ -113,30 +113,93 @@ function dashboardData(rows){
   const recent30=workoutSummary.filter(w=>w.date>=d30);
   return {workouts:workoutSummary,exercises,days,totalVolume,totalKcal,totalSets,recent7,recent30};
 }
+function progressDaySeries(rows){
+  const today=new Date();
+  today.setHours(0,0,0,0);
+  const out=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(today);d.setDate(d.getDate()-i);
+    const key=d.toISOString().slice(0,10);
+    const items=(rows||[]).filter(w=>(w.ended_at||w.created_at||w.started_at||'').slice(0,10)===key);
+    out.push({date:d,key,label:d.toLocaleDateString(undefined,{weekday:'short'}),volume:items.reduce((a,w)=>a+Number(w.summary?.volume||0),0),workouts:items.length});
+  }
+  return out;
+}
+function categorySplit(rows){
+  const map={};
+  (rows||[]).forEach(w=>(Array.isArray(w.exercises)?w.exercises:[]).forEach(ex=>{
+    const part=ex.bodyPart||'Other';
+    const vol=(Array.isArray(ex.sets)?ex.sets:[]).reduce((a,s)=>a+Number(s.load||0)*Number(s.reps||0),0);
+    map[part]=(map[part]||0)+vol;
+  }));
+  return Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,4);
+}
 function renderProgressDashboard(rows){
-  const d=dashboardData(rows);
+  const d=dashboardData(rows||[]);
   const el=$('progressDashboard'); if(!el)return;
   const weekVol=d.recent7.reduce((a,w)=>a+w.volume,0);
   const monthVol=d.recent30.reduce((a,w)=>a+w.volume,0);
   const avgVol=d.workouts.length?d.totalVolume/d.workouts.length:0;
   const best=d.workouts.reduce((a,w)=>Math.max(a,w.volume),0);
+  const recent=progressDaySeries(rows||[]);
+  const maxBar=Math.max(...recent.map(x=>x.volume),1);
+  const split=categorySplit(rows||[]);
+  const totalSplit=split.reduce((a,x)=>a+x[1],0)||1;
   const top=d.exercises.slice(0,8);
-  const recent=d.workouts.slice().sort((a,b)=>b.date-a.date).slice(0,8);
-  el.innerHTML=`
-    <div class="progress-grid">
-      <div class="progress-card"><span>All-time workouts</span><strong>${d.workouts.length}</strong><small>${d.days} training days</small></div>
-      <div class="progress-card"><span>7-day volume</span><strong>${Math.round(weekVol).toLocaleString()} kg</strong><small>${d.recent7.length} workout${d.recent7.length===1?'':'s'}</small></div>
-      <div class="progress-card"><span>30-day volume</span><strong>${Math.round(monthVol).toLocaleString()} kg</strong><small>${d.recent30.length} workout${d.recent30.length===1?'':'s'}</small></div>
-      <div class="progress-card"><span>Best workout</span><strong>${Math.round(best).toLocaleString()} kg</strong><small>Average ${Math.round(avgVol).toLocaleString()} kg</small></div>
-    </div>
-    <div class="progress-section">
-      <div class="section-head"><div><p class="eyebrow">EXERCISE PROGRESSION</p><h3>Highest training volume</h3></div></div>
-      ${top.length?`<div class="progress-table"><div class="progress-row progress-header"><span>Exercise</span><span>Sessions</span><span>Sets</span><span>Volume</span><span>Best load</span></div>${top.map(x=>`<div class="progress-row"><strong>${x.name}</strong><span>${x.sessions}</span><span>${x.sets}</span><span>${Math.round(x.volume).toLocaleString()} kg</span><span>${x.bestLoad?fmt(x.bestLoad)+' kg':'Bodyweight'}</span></div>`).join('')}</div>`:'<p class="muted">Complete your first workout to build exercise progression.</p>'}
-    </div>
-    <div class="progress-section">
-      <div class="section-head"><div><p class="eyebrow">PERSONAL RECORDS</p><h3>Best recorded sets</h3></div></div>
-      ${top.length?`<div class="progress-table"><div class="progress-row progress-header"><span>Exercise</span><span>Best load</span><span>Best reps</span><span>Est. 1RM</span><span>Last set</span></div>${d.exercises.slice().sort((a,b)=>b.bestLoad-a.bestLoad || b.bestReps-a.bestReps).slice(0,8).map(x=>`<div class="progress-row"><strong>${x.name}</strong><span>${x.bestLoad?fmt(x.bestLoad)+' kg':'Bodyweight'}</span><span>${x.bestReps||0}</span><span>${x.bestE1RM?fmt(x.bestE1RM)+' kg':'—'}</span><span>${x.lastLoad?fmt(x.lastLoad)+' kg × '+x.lastReps:'Bodyweight × '+(x.lastReps||0)}</span></div>`).join('')}</div>`:'<p class="muted">Your personal records will appear here after you log sets.</p>'}
+  const pr=d.exercises.slice().sort((a,b)=>b.bestLoad-a.bestLoad||b.bestE1RM-a.bestE1RM).slice(0,8);
+  const totalSets=d.totalSets;
+  const totalKcal=Math.round(d.totalKcal);
+  const bestExercise=pr[0];
+
+  if(!d.workouts.length){
+    el.innerHTML=`<div class="analytics-shell">
+      <div class="analytics-hero"><div><p class="eyebrow">03 · PROGRESS</p><h2>Your training dashboard</h2><p class="muted">Your charts, volume trends and personal records will appear here after your first saved workout.</p></div><span class="sync-pill"><i class="sync-dot"></i> Cloud connected</span></div>
+      <div class="empty-analytics"><div class="empty-icon">↗</div><h3>Your progress starts with your first workout</h3><p>Finish a workout and RepFuel will automatically calculate volume, training frequency, exercise progression and personal records.</p><br><button class="primary" type="button" onclick="showRepFuelSection('workout')">Start a workout →</button></div>
     </div>`;
+    return;
+  }
+
+  const chartBars=recent.map(x=>`<div class="bar-col" title="${x.label}: ${Math.round(x.volume).toLocaleString()} kg"><span class="bar-value">${x.volume?Math.round(x.volume/1000*10)/10+'k':''}</span><div class="bar" style="height:${Math.max(3,(x.volume/maxBar)*145)}px"></div><span class="bar-label">${x.label}</span></div>`).join('');
+  const colors=['#A3FF12','#71ad0c','#3f5d1c','#263229'];
+  let cumulative=0;
+  const stops=split.length?split.map((x,i)=>{const pct=x[1]/totalSplit*100;const s=`${colors[i]} ${cumulative.toFixed(1)}% ${(cumulative+pct).toFixed(1)}%`;cumulative+=pct;return s}).join(', '):'#263229 0 100%';
+  const legend=split.length?split.map((x,i)=>`<div class="legend-row"><i class="legend-dot" style="background:${colors[i]}"></i><span>${x[0]}</span><strong>${Math.round(x[1]).toLocaleString()} kg</strong></div>`).join(''):'<div class="muted">No exercise volume yet.</div>';
+
+  el.innerHTML=`
+  <div class="analytics-shell">
+    <div class="analytics-hero">
+      <div><p class="eyebrow">03 · PROGRESS</p><h2>Your training dashboard</h2><p class="muted">A live view of your RepFuel training history.</p></div>
+      <span class="sync-pill"><i class="sync-dot"></i> Cloud synced</span>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric-card"><span class="metric-label">Workouts</span><div class="metric-value accent">${d.workouts.length}</div><span class="metric-meta">${d.days} training day${d.days===1?'':'s'}</span></div>
+      <div class="metric-card"><span class="metric-label">Total volume</span><div class="metric-value">${Math.round(d.totalVolume).toLocaleString()} kg</div><span class="metric-meta">${Math.round(avgVol).toLocaleString()} kg average / workout</span></div>
+      <div class="metric-card"><span class="metric-label">Total sets</span><div class="metric-value">${totalSets}</div><span class="metric-meta">${totalKcal.toLocaleString()} estimated kcal</span></div>
+      <div class="metric-card"><span class="metric-label">Best workout</span><div class="metric-value">${Math.round(best).toLocaleString()} kg</div><span class="metric-meta">${bestExercise?`Top lift: ${bestExercise.name}`:'Keep training'}</span></div>
+    </div>
+
+    <div class="analytics-two">
+      <div class="analytics-panel">
+        <div class="panel-heading"><div><h3>7-day training volume</h3><p>Daily logged resistance volume</p></div><strong class="pr-badge">${Math.round(weekVol).toLocaleString()} kg</strong></div>
+        <div class="chart-wrap"><div class="chart-y"><span>${Math.round(maxBar).toLocaleString()}</span><span>${Math.round(maxBar*.5).toLocaleString()}</span><span>0</span></div><div class="bar-chart">${chartBars}</div></div>
+      </div>
+      <div class="analytics-panel">
+        <div class="panel-heading"><div><h3>Training split</h3><p>All-time volume by body part</p></div></div>
+        <div class="donut-wrap"><div class="donut" style="background:conic-gradient(${stops})"><div class="donut-center"><strong>${Math.round(monthVol/1000*10)/10}k</strong><span>kg / 30 days</span></div></div><div class="legend">${legend}</div></div>
+      </div>
+    </div>
+
+    <div class="analytics-panel">
+      <div class="panel-heading"><div><p class="eyebrow">EXERCISE PROGRESSION</p><h3>Highest training volume</h3><p>Exercises ranked by total logged volume.</p></div><span class="history-count">${d.exercises.length} exercises</span></div>
+      ${top.length?`<div class="progress-table"><div class="progress-row progress-header"><span>Exercise</span><span>Sessions</span><span>Sets</span><span>Volume</span><span>Best load</span></div>${top.map(x=>`<div class="progress-row"><strong>${x.name}</strong><span>${x.sessions}</span><span>${x.sets}</span><span>${Math.round(x.volume).toLocaleString()} kg</span><span>${x.bestLoad?fmt(x.bestLoad)+' kg':'Bodyweight'}</span></div>`).join('')}</div>`:'<div class="empty-analytics"><h3>No exercise data yet</h3></div>'}
+    </div>
+
+    <div class="analytics-panel">
+      <div class="panel-heading"><div><p class="eyebrow">PERSONAL RECORDS</p><h3>Best recorded sets</h3><p>Highest load and estimated 1RM from your logged sets.</p></div></div>
+      ${pr.length?`<div class="progress-table"><div class="progress-row progress-header"><span>Exercise</span><span>Best load</span><span>Best reps</span><span>Est. 1RM</span><span>Last set</span></div>${pr.map(x=>`<div class="progress-row"><strong>${x.name}</strong><span>${x.bestLoad?fmt(x.bestLoad)+' kg':'Bodyweight'}</span><span>${x.bestReps||0}</span><span>${x.bestE1RM?fmt(x.bestE1RM)+' kg':'—'}</span><span>${x.lastLoad?fmt(x.lastLoad)+' kg × '+x.lastReps:'Bodyweight × '+(x.lastReps||0)}</span></div>`).join('')}</div>`:'<div class="empty-analytics"><h3>Your PRs will appear here</h3></div>'}
+    </div>
+  </div>`;
 }
 async function renderHistory(){
   const rows=await fetchCloudHistory();
@@ -145,13 +208,15 @@ async function renderHistory(){
   h.forEach(x=>{const key=x.savedAt?.slice(0,10)||'unknown';(sessions[key]??=[]).push(x)});
   const days=Object.entries(sessions).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,30);
   const list=$('historyList');
-  if(list) list.innerHTML=days.length?days.map(([day,items])=>{
-    const kcal=items.reduce((a,x)=>a+(x.estimatedNetKcal||0),0);
-    const volume=items.reduce((a,x)=>a+(x.totalVolumeKg||0),0);
-    const sets=items.reduce((a,x)=>a+(x.sets||0),0);
-    const ex=[...new Set(items.map(x=>x.exercise))];
-    return `<div class="history-day"><div><strong>${formatDay(day+'T12:00:00')}</strong><span>${ex.slice(0,3).join(' · ')}${ex.length>3?' · +'+(ex.length-3)+' more':''}</span></div><div><strong>${Math.round(volume).toLocaleString()} kg</strong><span>${sets} sets · ${Math.round(kcal)} kcal</span></div></div>`
-  }).join(''):'<p class="muted">No cloud workouts yet. Finish a workout and it will appear here.</p>';
+  if(list) list.innerHTML=`
+    <div class="history-toolbar"><div><strong>Recent workouts</strong><span class="history-count"> · ${days.length} training day${days.length===1?'':'s'}</span></div><button class="ghost" type="button" onclick="renderHistory()">↻ Refresh</button></div>
+    ${days.length?days.map(([day,items])=>{
+      const kcal=items.reduce((a,x)=>a+(x.estimatedNetKcal||0),0);
+      const volume=items.reduce((a,x)=>a+(x.totalVolumeKg||0),0);
+      const sets=items.reduce((a,x)=>a+(x.sets||0),0);
+      const ex=[...new Set(items.map(x=>x.exercise))];
+      return `<div class="history-day"><div class="history-title"><div class="history-icon">↗</div><div><strong>${formatDay(day+'T12:00:00')}</strong><span>${ex.slice(0,3).join(' · ')}${ex.length>3?' · +'+(ex.length-3)+' more':''}</span></div></div><div class="history-metrics"><span><b>${Math.round(volume).toLocaleString()}</b> kg</span><span><b>${sets}</b> sets</span><span><b>${Math.round(kcal)}</b> kcal</span></div></div>`
+    }).join(''):'<div class="empty-analytics"><div class="empty-icon">◷</div><h3>No cloud workouts yet</h3><p>Finish and save your first workout. It will appear here automatically.</p></div>'}`;
 
   const totalKcal=h.reduce((a,x)=>a+(x.estimatedNetKcal||0),0);
   const totalVolume=h.reduce((a,x)=>a+(x.totalVolumeKg||0),0);
@@ -163,7 +228,6 @@ async function renderHistory(){
   if($('progressVolume')) $('progressVolume').textContent=Math.round(totalVolume).toLocaleString()+' kg';
   const bestVolume=rows.reduce((best,w)=>Math.max(best,Number(w.summary?.volume||0)),0);
   if($('progressBest')) $('progressBest').textContent=Math.round(bestVolume).toLocaleString()+' kg';
-  renderProgressDashboard(rows);
 }
 
 const EXERCISE_IMAGE_MAP = {"barbell_bench_press":"assets/exercises/barbell_press.png","incline_barbell_bench_press":"assets/exercises/inclined_barwell_bench_press.png","dumbbell_bench_press":"assets/exercises/dumbel_bench_press.png","incline_dumbbell_press":"assets/exercises/inclined_dumbel_press.png","pec_deck_machine_fly":"assets/exercises/pecdeck_fly.png","cable_chest_fly":"assets/exercises/cabel_chest_fly.png","lat_pulldown":"assets/exercises/latt_pull_down.png","barbell_row":"assets/exercises/barbell_row.png","seated_cable_row":"assets/exercises/seated_cabel_row.png","t_bar_row":"assets/exercises/t_bar.png","straight_arm_pulldown":"assets/exercises/straight_arm_pulldown.png","dumbbell_pullover":"assets/exercises/dumbel_pullover.png","barbell_squat":"assets/exercises/barbell_squat.png","leg_press":"assets/exercises/leg_press.png","leg_extension":"assets/exercises/leg_extention.png","leg_curl":"assets/exercises/leg_curl.png","hip_thrust":"assets/exercises/hip_thrust.png","calf_raise":"assets/exercises/calf_raises.png","barbell_curl":"assets/exercises/barbell_curl.png","hammer_curl":"assets/exercises/hammer_curl.png","preacher_curl":"assets/exercises/preacher_curl.png","triceps_pushdown":"assets/exercises/tricep_pushdown.png","overhead_triceps_extension":"assets/exercises/overhead_tricep_extention.png","skull_crushers":"assets/exercises/skull_crusher.png","dumbbell_shoulder_press":"assets/exercises/dumbell_shoulder_press.png","dumbbell_lateral_raise":"assets/exercises/dumbell_lateral_raise.png","front_dumbbell_raise":"assets/exercises/front_dumbel_raise.png","reverse_pec_deck":"assets/exercises/reverse_pec_deck.png","face_pull":"assets/exercises/face_pull.png"};

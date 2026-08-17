@@ -12,12 +12,72 @@
 .progress-empty{padding:28px 16px;border:1px dashed #29312c;border-radius:14px;text-align:center;background:#101511}.progress-empty strong{display:block;color:#f5f7f5;margin-bottom:6px}
 @media(max-width:700px){.progress-row{font-size:.88rem;gap:8px;padding:10px}.progress-row strong{min-width:120px}}
 </style>
+
+<style>
+/* RepFuel Stage 1.5 — analytics polish */
+.analytics-shell{display:grid;gap:16px}
+.analytics-hero{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;padding:22px;border:1px solid #29312c;border-radius:16px;background:linear-gradient(135deg,#0c1410,#101a14)}
+.analytics-hero h2{font-size:30px;margin-bottom:5px}
+.sync-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #31402f;border-radius:999px;color:#b9c5bd;background:#0a110d;font-size:10px;font-weight:800}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#A3FF12;box-shadow:0 0 10px rgba(163,255,18,.45)}
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.metric-card{position:relative;overflow:hidden;padding:17px;border:1px solid #29312c;border-radius:14px;background:#0a100d}
+.metric-card:after{content:"";position:absolute;right:-28px;bottom:-38px;width:100px;height:100px;border-radius:50%;background:rgba(163,255,18,.035)}
+.metric-card .metric-label{color:#9BA39D;font-size:10px;text-transform:uppercase;letter-spacing:.09em;font-weight:800}
+.metric-card .metric-value{font-size:25px;font-weight:950;margin:7px 0 4px;color:#F5F7F5}
+.metric-card .metric-value.accent{color:#A3FF12}
+.metric-card .metric-meta{color:#727d76;font-size:10px}
+.analytics-two{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:16px}
+.analytics-panel{border:1px solid #29312c;border-radius:16px;background:#0a100d;padding:18px}
+.panel-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;margin-bottom:16px}
+.panel-heading h3{font-size:16px;margin:0 0 3px}
+.panel-heading p{margin:0;color:#7f8982;font-size:10px}
+.chart-wrap{height:205px;display:flex;align-items:stretch;gap:10px}
+.chart-y{width:36px;display:flex;flex-direction:column;justify-content:space-between;color:#59635d;font-size:9px;text-align:right;padding:2px 0 20px}
+.bar-chart{flex:1;display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;border-bottom:1px solid #29312c;padding:0 4px 20px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 40px,#1c251f 41px)}
+.bar-col{height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:7px;min-width:0}
+.bar{width:min(34px,70%);min-height:3px;border-radius:6px 6px 2px 2px;background:linear-gradient(to top,#6eae0b,#A3FF12);box-shadow:0 0 16px rgba(163,255,18,.08)}
+.bar-label{font-size:8px;color:#68726b;white-space:nowrap}
+.bar-value{font-size:8px;color:#9ba39d;min-height:10px}
+.donut-wrap{display:flex;align-items:center;gap:20px;min-height:205px}
+.donut{width:142px;height:142px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#A3FF12 0 35%,#71ad0c 35% 60%,#3f5d1c 60% 78%,#263229 78% 100%);position:relative;flex:none}
+.donut:after{content:"";width:92px;height:92px;border-radius:50%;background:#0a100d;border:1px solid #29312c;position:absolute}
+.donut-center{position:relative;z-index:2;text-align:center}.donut-center strong{display:block;font-size:20px}.donut-center span{color:#77827a;font-size:9px}
+.legend{display:grid;gap:9px;min-width:0}.legend-row{display:grid;grid-template-columns:8px 1fr auto;align-items:center;gap:8px;font-size:10px}.legend-dot{width:8px;height:8px;border-radius:50%;background:#A3FF12}.legend-row span{color:#9BA39D;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.legend-row strong{color:#F5F7F5}
+.progress-section{margin-top:0;border:0;padding-top:0}
+.progress-table{border:1px solid #29312c;border-radius:13px;overflow:hidden;background:#080d0b}
+.progress-row{min-height:48px}
+.progress-row:not(.progress-header):hover{background:#0d1510}
+.pr-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border-radius:5px;background:#15200f;color:#A3FF12;font-size:8px;font-weight:900;border:1px solid #33452a}
+.history-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.history-count{color:#7e8881;font-size:10px}
+.history-day{padding:15px 16px;border-radius:12px;background:#0a100d;transition:.15s ease}
+.history-day:hover{border-color:#3b493f;background:#0d1510}
+.history-day .history-title{display:flex;align-items:center;gap:9px}
+.history-icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#151f17;color:#A3FF12;font-size:12px;font-weight:900}
+.history-day strong{font-size:12px}
+.history-day .history-metrics{display:flex;gap:12px;flex-wrap:wrap;margin-top:9px}
+.history-metrics span{padding:5px 7px;border-radius:6px;background:#101711;color:#8f9a92;font-size:9px}
+.history-metrics b{color:#dce2de;font-weight:800}
+.empty-analytics{padding:38px 20px;border:1px dashed #344039;border-radius:14px;text-align:center;background:#090e0b}
+.empty-analytics .empty-icon{width:46px;height:46px;margin:0 auto 12px;border-radius:14px;display:grid;place-items:center;background:#151f17;color:#A3FF12;font-size:18px}
+.empty-analytics h3{font-size:15px;margin-bottom:5px}.empty-analytics p{max-width:430px;margin:0 auto;color:#77827a;font-size:11px;line-height:1.6}
+@media(max-width:1000px){.analytics-two{grid-template-columns:1fr}.metric-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){.analytics-hero{align-items:flex-start;flex-direction:column}.metric-grid{grid-template-columns:1fr 1fr}.donut-wrap{gap:12px}.donut{width:120px;height:120px}.donut:after{width:78px;height:78px}.progress-row{grid-template-columns:1.6fr .65fr .65fr!important}.progress-row span:nth-child(4),.progress-header span:nth-child(4){display:none!important}}
+@media(max-width:430px){.metric-grid{grid-template-columns:1fr}.donut-wrap{flex-direction:column;align-items:flex-start}.analytics-hero h2{font-size:24px}}
+</style>
+
+<style>
+@media(max-width:850px){
+  .topbar{gap:10px;overflow:hidden}.main-nav{display:flex;overflow-x:auto;justify-content:flex-start;flex:1;min-width:0}.main-nav::-webkit-scrollbar{display:none}.nav-item{flex:0 0 auto;font-size:11px}
+}
+</style>
 </head>
 <body>
-<header class="topbar"><div class="brand"><div class="logo">RF</div><div><strong>RepFuel</strong><span>workout intelligence · model 1.5.1</span></div></div><nav class="main-nav"><button type="button" class="nav-item active" data-section="workout" onclick="showRepFuelSection('workout')">⚒ Workout</button><button type="button" class="nav-item" data-section="progress" onclick="showRepFuelSection('progress')">▥ Progress</button><button type="button" class="nav-item" data-section="history" onclick="showRepFuelSection('history')">◷ History</button></nav><div class="top-actions"><div id="saveStatus" class="status">Local mode</div><button id="editProfile" class="top-btn">Profile</button></div></header>
+<header class="topbar"><div class="brand"><div class="logo">RF</div><div><strong>RepFuel</strong><span>workout intelligence · model 1.5.2</span></div></div><nav class="main-nav"><button type="button" class="nav-item active" data-section="workout" onclick="showRepFuelSection('workout')">⚒ Workout</button><button type="button" class="nav-item" data-section="progress" onclick="showRepFuelSection('progress')">▥ Progress</button><button type="button" class="nav-item" data-section="history" onclick="showRepFuelSection('history')">◷ History</button></nav><div class="top-actions"><div id="saveStatus" class="status">Local mode</div><button id="editProfile" class="top-btn">Profile</button></div></header>
 <main>
 <section id="profileCard" class="card hero-card">
-  <div class="hero-copy"><p class="eyebrow">RepFuel · Model 1.5.1</p><h1>Track your workout.<br><span>Let RepFuel handle the math.</span></h1><p class="hero-sub">Log sets in real time, see your training volume, and get a research-anchored calorie estimate without carrying a notebook around the gym.</p></div>
+  <div class="hero-copy"><p class="eyebrow">RepFuel · Model 1.5.2</p><h1>Track your workout.<br><span>Let RepFuel handle the math.</span></h1><p class="hero-sub">Log sets in real time, see your training volume, and get a research-anchored calorie estimate without carrying a notebook around the gym.</p></div>
   <div class="profile-box"><div class="section-head"><div><p class="eyebrow">01 · Your profile</p><h2>Set up once</h2></div></div>
     <div class="grid six"><label>Age<input id="age" type="number" min="13" max="100" placeholder="23"></label><label>Sex<select id="sex"><option value="male">Male</option><option value="female">Female</option><option value="other">Other / prefer not to say</option></select></label><label>Height (cm)<input id="height" type="number" min="100" max="230" placeholder="167"></label><label>Weight (kg)<input id="bodyWeight" type="number" min="25" max="300" step="0.1" placeholder="80"></label><label>Training level<select id="level"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="pro">Pro</option></select></label><label>Body fat % <span class="optional">optional</span><input id="bodyFat" type="number" min="3" max="70" step="0.1" placeholder="e.g. 18"></label></div>
     <label class="consent"><input id="consent" type="checkbox"><span>I agree to anonymous workout data being used to improve RepFuel. No name, email or account is required.</span></label>
