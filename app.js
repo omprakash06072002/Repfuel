@@ -545,11 +545,196 @@ $('saveProfile').onclick=async()=>{
   const cloud=await saveProfileToCloud(p);$('saveStatus').textContent=cloud.ok?'☁ Profile synced':'Local profile';enterWorkout(p);
 };
 
+
+let accountSetupEmail = '';
+
+function getCurrentAuthUser(){
+  return window.repSupabase?.auth ? repSupabase.auth.getUser() : Promise.resolve({data:{user:null}});
+}
+
+async function isPermanentRepFuelUser(){
+  const {data:{user}}=await getCurrentAuthUser();
+  return !!(user && !user.is_anonymous && user.email);
+}
+
+function showAccountPanel(){
+  const panel=$('accountPanel'); if(!panel)return;
+  panel.classList.remove('hidden');
+  updateAccountPanel().catch(console.error);
+}
+
+function hideAccountPanel(){
+  $('accountPanel')?.classList.add('hidden');
+  $('accountModal')?.classList.add('hidden');
+}
+
+async function updateAccountPanel(){
+  if(!window.repSupabase?.auth)return;
+  const {data:{user},error}=await getCurrentAuthUser();
+  if(error||!user)return;
+
+  const permanent=!user.is_anonymous;
+  $('guestAccountActions')?.classList.toggle('hidden',permanent);
+  $('permanentAccountActions')?.classList.toggle('hidden',!permanent);
+
+  if(permanent){
+    $('accountStatusTitle').textContent='Permanent account';
+    $('accountStatusText').textContent='Your RepFuel account can be recovered on another device using your email and password.';
+    $('accountEmail').textContent=user.email||'—';
+    $('saveStatus').textContent='☁ Account synced';
+  }else{
+    $('accountStatusTitle').textContent='Guest account';
+    $('accountStatusText').textContent='Your workouts are cloud-synced, but this guest identity cannot be recovered after sign-out or on another device.';
+    $('saveStatus').textContent='☁ Guest synced';
+  }
+}
+
+function openCreateAccount(){
+  $('accountModal')?.classList.remove('hidden');
+  $('createAccountForm')?.classList.remove('hidden');
+  $('verificationStep')?.classList.add('hidden');
+  $('passwordStep')?.classList.add('hidden');
+  $('accountFormError')?.classList.add('hidden');
+  $('accountName')?.focus();
+}
+
+function closeCreateAccount(){
+  $('accountModal')?.classList.add('hidden');
+}
+
+function showAccountError(id,message){
+  const el=$(id); if(!el)return;
+  el.textContent=message; el.classList.remove('hidden');
+}
+
+async function sendAccountVerification(){
+  if(!window.repSupabase?.auth){showAccountError('accountFormError','Cloud account services are not available right now.');return;}
+  const name=$('accountName').value.trim();
+  const email=$('accountEmailInput').value.trim();
+  const consent=$('accountDataConsent').checked;
+  if(!name){showAccountError('accountFormError','Please enter your name.');return;}
+  if(!email || !email.includes('@')){showAccountError('accountFormError','Please enter a valid email address.');return;}
+  if(!consent){showAccountError('accountFormError','Please confirm that you understand the account data storage.');return;}
+
+  const {data:{user},error:userError}=await getCurrentAuthUser();
+  if(userError||!user){showAccountError('accountFormError','Your RepFuel session is unavailable. Refresh the page and try again.');return;}
+  if(!user.is_anonymous){
+    showAccountError('accountFormError','This RepFuel user already has a permanent account.');
+    return;
+  }
+
+  $('sendVerificationBtn').disabled=true;
+  try{
+    const {error}=await repSupabase.auth.updateUser({
+      email,
+      data:{display_name:name}
+    });
+    if(error)throw error;
+
+    accountSetupEmail=email;
+    const p=profile();
+    p.name=name;
+    p.consent=true;
+    localStorage.setItem('repfuel_profile',JSON.stringify(p));
+    await saveProfileToCloud(p);
+
+    $('verificationEmail').textContent=email;
+    $('createAccountForm').classList.add('hidden');
+    $('verificationStep').classList.remove('hidden');
+  }catch(e){
+    showAccountError('accountFormError',e.message||'Could not start account creation.');
+  }finally{
+    $('sendVerificationBtn').disabled=false;
+  }
+}
+
+async function resendAccountVerification(){
+  if(!accountSetupEmail)return;
+  $('resendVerificationBtn').disabled=true;
+  try{
+    const {error}=await repSupabase.auth.resend({type:'email_change',email:accountSetupEmail});
+    if(error)throw error;
+    $('verificationError').classList.add('hidden');
+  }catch(e){
+    showAccountError('verificationError',e.message||'Could not resend the verification email.');
+  }finally{$('resendVerificationBtn').disabled=false;}
+}
+
+async function checkVerificationAndShowPassword(){
+  $('finishVerificationBtn').disabled=true;
+  try{
+    await repSupabase.auth.getSession();
+    const {data:{user},error}=await getCurrentAuthUser();
+    if(error||!user)throw new Error('Could not read your RepFuel account.');
+    const verified=user.email_confirmed_at || (user.identities||[]).some(i=>i.provider==='email');
+    if(!verified){
+      showAccountError('verificationError','We still cannot see the verification. Open the email link first, then return here and try again.');
+      return;
+    }
+    $('verificationStep').classList.add('hidden');
+    $('passwordStep').classList.remove('hidden');
+    $('accountPassword').focus();
+  }catch(e){
+    showAccountError('verificationError',e.message||'Verification check failed.');
+  }finally{$('finishVerificationBtn').disabled=false;}
+}
+
+async function setPermanentPassword(){
+  const password=$('accountPassword').value;
+  const confirm=$('accountPasswordConfirm').value;
+  if(password.length<8){showAccountError('passwordError','Use at least 8 characters.');return;}
+  if(password!==confirm){showAccountError('passwordError','The passwords do not match.');return;}
+
+  $('setPasswordBtn').disabled=true;
+  try{
+    const {data,error}=await repSupabase.auth.updateUser({password});
+    if(error)throw error;
+
+    // Re-save the profile against the same user id.
+    const p=profile();
+    p.name=$('accountName').value.trim()||p.name||'';
+    p.consent=true;
+    localStorage.setItem('repfuel_profile',JSON.stringify(p));
+    await saveProfileToCloud(p);
+
+    $('accountModal').classList.add('hidden');
+    await updateAccountPanel();
+    $('saveStatus').textContent='☁ Account synced';
+    alert('Your RepFuel account is ready. Your existing cloud workouts stay attached to this account.');
+  }catch(e){
+    showAccountError('passwordError',e.message||'Could not set your password.');
+  }finally{$('setPasswordBtn').disabled=false;}
+}
+
+async function signOutRepFuel(){
+  if(!window.repSupabase?.auth)return;
+  const {error}=await repSupabase.auth.signOut();
+  if(error){alert(error.message);return;}
+  // A signed-out anonymous/permanent user cannot be recovered by this page.
+  // Start a fresh anonymous session for continued guest use.
+  const {error:anonError}=await repSupabase.auth.signInAnonymously();
+  if(anonError){alert(anonError.message);return;}
+  localStorage.removeItem('repfuel_profile');
+  location.reload();
+}
+
+
+$('createAccountBtn').onclick=openCreateAccount;
+$('closeAccountPanel').onclick=hideAccountPanel;
+$('closeAccountModal').onclick=closeCreateAccount;
+$('sendVerificationBtn').onclick=sendAccountVerification;
+$('resendVerificationBtn').onclick=resendAccountVerification;
+$('finishVerificationBtn').onclick=checkVerificationAndShowPassword;
+$('setPasswordBtn').onclick=setPermanentPassword;
+$('signOutBtn').onclick=signOutRepFuel;
+$('accountPanel').addEventListener('click',e=>{if(e.target===$('accountPanel'))hideAccountPanel()});
+$('accountModal').addEventListener('click',e=>{if(e.target===$('accountModal'))closeCreateAccount()});
+
 $('exerciseSelect').onchange=selectExercise;
 $('startSet').onclick=startSet;$('finishSet').onclick=finishSet;$('addSet').onclick=addSet;$('finishExercise').onclick=finishExercise;
 $('finishWorkout').onclick=finishWorkout;$('startAnother').onclick=startAnotherWorkout;
 $('clearHistory').onclick=async()=>{if(!confirm('Clear all cloud workout history for this account?'))return;try{await deleteCloudHistory();localStorage.removeItem('repfuel_history');await renderHistory();$('saveStatus').textContent='☁ Cloud history cleared'}catch(e){alert('Could not clear cloud history: '+e.message)}};
-$('editProfile').onclick=()=>{['workoutCard','progressCard','summaryCard','historyCard'].forEach(id=>$(id)?.classList.add('hidden'));$('profileCard').classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.section==='workout'));window.scrollTo({top:0,behavior:'smooth'});};
+$('editProfile').onclick=()=>{['workoutCard','progressCard','summaryCard','historyCard'].forEach(id=>$(id)?.classList.add('hidden'));$('profileCard').classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.section==='workout'));window.scrollTo({top:0,behavior:'smooth'});showAccountPanel();};
 async function showRepFuelSection(section){
   const views=['workoutCard','progressCard','historyCard'];
   const summary=$('summaryCard');

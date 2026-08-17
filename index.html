@@ -237,12 +237,46 @@
 }
 </style>
 
+
+<style id="repfuel-account-stage21">
+.account-panel{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.62);display:flex;align-items:flex-start;justify-content:center;padding:88px 18px 24px;overflow:auto;backdrop-filter:blur(8px)}
+.account-panel.hidden,.modal-backdrop.hidden{display:none!important}
+.account-card,.modal-card{width:min(620px,100%);background:#151A17;border:1px solid #29312C;border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.5);padding:24px}
+.account-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}
+.account-status{display:flex;gap:12px;align-items:flex-start;border:1px solid #29312C;background:#0B0F0D;border-radius:14px;padding:14px;margin:16px 0}
+.account-status p{margin:4px 0 0;color:#9BA39D;font-size:13px;line-height:1.45}
+.account-dot{width:10px;height:10px;border-radius:50%;background:#A3FF12;box-shadow:0 0 0 5px rgba(163,255,18,.08);margin-top:5px;flex:0 0 auto}
+.account-actions{margin-top:18px}
+.account-note{font-size:12px;color:#9BA39D;line-height:1.5;margin:10px 0 0}
+.account-email-row{display:flex;justify-content:space-between;gap:12px;padding:14px;border:1px solid #29312C;border-radius:12px;margin-bottom:12px}
+.modal-backdrop{position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto;backdrop-filter:blur(10px)}
+.modal-card{max-width:520px}
+.modal-card label{display:block;margin:12px 0}
+.form-error{margin-top:12px;border:1px solid #5c2d2d;background:#261516;color:#ffb3b3;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.4}
+.verification-icon{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#A3FF12;color:#0B0F0D;font-weight:800;margin-bottom:12px}
+.danger{border-color:#613838!important;color:#ffb3b3!important}
+@media(max-width:700px){
+  .account-panel{padding:76px 10px 100px}
+  .account-card,.modal-card{padding:18px;border-radius:16px}
+  .account-head{gap:10px}
+  .account-head h2{font-size:21px}
+}
+</style>
+
+
+<style id="repfuel-logo-mobile-fix">
+@media(max-width:700px){
+  .topbar .logo{display:grid!important;visibility:visible!important;opacity:1!important;flex:0 0 34px!important;width:34px!important;height:34px!important;min-width:34px!important}
+  .topbar .brand{display:flex!important;align-items:center!important;gap:8px!important}
+}
+</style>
+
 </head>
 <body>
-<header class="topbar"><div class="brand"><div class="logo">RF</div><div><strong>RepFuel</strong><span>workout intelligence · model 1.5.3</span></div></div><nav class="main-nav"><button type="button" class="nav-item active" data-section="workout" onclick="showRepFuelSection('workout')">⚒ Workout</button><button type="button" class="nav-item" data-section="progress" onclick="showRepFuelSection('progress')">▥ Progress</button><button type="button" class="nav-item" data-section="history" onclick="showRepFuelSection('history')">◷ History</button></nav><div class="top-actions"><div id="saveStatus" class="status">Local mode</div><button id="editProfile" class="top-btn">Profile</button></div></header>
+<header class="topbar"><div class="brand"><div class="logo">RF</div><div><strong>RepFuel</strong><span>workout intelligence · model 2.1.0</span></div></div><nav class="main-nav"><button type="button" class="nav-item active" data-section="workout" onclick="showRepFuelSection('workout')">⚒ Workout</button><button type="button" class="nav-item" data-section="progress" onclick="showRepFuelSection('progress')">▥ Progress</button><button type="button" class="nav-item" data-section="history" onclick="showRepFuelSection('history')">◷ History</button></nav><div class="top-actions"><div id="saveStatus" class="status">Local mode</div><button id="editProfile" class="top-btn">Profile</button></div></header>
 <main>
 <section id="profileCard" class="card hero-card">
-  <div class="hero-copy"><p class="eyebrow">RepFuel · Model 1.5.3</p><h1>Track your workout.<br><span>Let RepFuel handle the math.</span></h1><p class="hero-sub">Log sets in real time, see your training volume, and get a research-anchored calorie estimate without carrying a notebook around the gym.</p></div>
+  <div class="hero-copy"><p class="eyebrow">RepFuel · Model 2.1.0</p><h1>Track your workout.<br><span>Let RepFuel handle the math.</span></h1><p class="hero-sub">Log sets in real time, see your training volume, and get a research-anchored calorie estimate without carrying a notebook around the gym.</p></div>
   <div class="profile-box"><div class="section-head"><div><p class="eyebrow">01 · Your profile</p><h2>Set up once</h2></div></div>
     <div class="grid six"><label>Age<input id="age" type="number" min="13" max="100" placeholder="23"></label><label>Sex<select id="sex"><option value="male">Male</option><option value="female">Female</option><option value="other">Other / prefer not to say</option></select></label><label>Height (cm)<input id="height" type="number" min="100" max="230" placeholder="167"></label><label>Weight (kg)<input id="bodyWeight" type="number" min="25" max="300" step="0.1" placeholder="80"></label><label>Training level<select id="level"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="pro">Pro</option></select></label><label>Body fat % <span class="optional">optional</span><input id="bodyFat" type="number" min="3" max="70" step="0.1" placeholder="e.g. 18"></label></div>
     <label class="consent"><input id="consent" type="checkbox"><span>I agree to anonymous workout data being used to improve RepFuel. No name, email or account is required.</span></label>
@@ -340,4 +374,71 @@
 </section>
 </main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
-<script src="app.js"></script></body></html>
+<script src="app.js"></script>
+<div id="accountPanel" class="account-panel hidden">
+  <div class="account-card">
+    <div class="account-head">
+      <div>
+        <p class="eyebrow">ACCOUNT</p>
+        <h2 id="accountTitle">RepFuel Account</h2>
+        <p id="accountSub" class="muted">Your workout data can follow you across devices.</p>
+      </div>
+      <button type="button" class="ghost" id="closeAccountPanel">Close</button>
+    </div>
+    <div id="accountStatusBox" class="account-status">
+      <span class="account-dot"></span>
+      <div><strong id="accountStatusTitle">Guest account</strong><p id="accountStatusText">Your workouts are currently linked to this browser's anonymous RepFuel user.</p></div>
+    </div>
+    <div class="account-actions" id="guestAccountActions">
+      <button type="button" class="primary" id="createAccountBtn">Create permanent account</button>
+      <p class="account-note">Creating an account keeps your existing RepFuel user ID, so your cloud workouts remain attached to you.</p>
+    </div>
+    <div class="account-actions hidden" id="permanentAccountActions">
+      <div class="account-email-row"><span>Email</span><strong id="accountEmail">—</strong></div>
+      <button type="button" class="ghost danger" id="signOutBtn">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<div id="accountModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+  <div class="modal-card">
+    <div class="account-head">
+      <div>
+        <p class="eyebrow">REPfuel ACCOUNT</p>
+        <h2 id="accountModalTitle">Create your account</h2>
+        <p id="accountModalText" class="muted">We'll send a verification email. Your current guest workouts stay with this account.</p>
+      </div>
+      <button type="button" class="ghost" id="closeAccountModal">×</button>
+    </div>
+
+    <div id="createAccountForm">
+      <label>Name <input id="accountName" type="text" autocomplete="name" placeholder="Your name"></label>
+      <label>Email <input id="accountEmailInput" type="email" autocomplete="email" placeholder="you@example.com"></label>
+      <label class="consent"><input id="accountDataConsent" type="checkbox"><span>I understand that my account stores my RepFuel profile and workout history so it can sync across devices.</span></label>
+      <button type="button" class="primary large" id="sendVerificationBtn">Send verification email →</button>
+      <p class="account-note">After verifying your email, return to RepFuel and finish setting a password from your Profile.</p>
+      <div id="accountFormError" class="form-error hidden"></div>
+    </div>
+
+    <div id="verificationStep" class="hidden">
+      <div class="verification-icon">✓</div>
+      <h3>Check your email</h3>
+      <p class="muted">We sent a verification link to <strong id="verificationEmail">your email</strong>. Open it, then return to RepFuel.</p>
+      <button type="button" class="primary large" id="finishVerificationBtn">I've verified my email</button>
+      <button type="button" class="ghost large" id="resendVerificationBtn">Send again</button>
+      <div id="verificationError" class="form-error hidden"></div>
+    </div>
+
+    <div id="passwordStep" class="hidden">
+      <div class="verification-icon">✓</div>
+      <h3>Set your password</h3>
+      <p class="muted">Your email is verified. Choose a password so you can sign back in on another device.</p>
+      <label>Password <input id="accountPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters"></label>
+      <label>Confirm password <input id="accountPasswordConfirm" type="password" autocomplete="new-password" placeholder="Repeat password"></label>
+      <button type="button" class="primary large" id="setPasswordBtn">Finish account setup →</button>
+      <div id="passwordError" class="form-error hidden"></div>
+    </div>
+  </div>
+</div>
+
+</body></html>
