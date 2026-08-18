@@ -756,21 +756,26 @@ async function signOutRepFuel(){
 }
 
 
-$('createAccountBtn')?.addEventListener('click',openCreateAccount);
-$('closeAccountPanel')?.addEventListener('click',hideAccountPanel);
-$('closeAccountModal')?.addEventListener('click',closeCreateAccount);
-$('sendVerificationBtn')?.addEventListener('click',sendAccountVerification);
-$('resendVerificationBtn')?.addEventListener('click',resendAccountVerification);
-$('finishVerificationBtn')?.addEventListener('click',checkVerificationAndShowPassword);
-$('setPasswordBtn')?.addEventListener('click',setPermanentPassword);
-$('signOutBtn')?.addEventListener('click',signOutRepFuel);
+document.addEventListener('DOMContentLoaded', () => {
 
-$('accountPanel')?.addEventListener('click',e=>{
-  if(e.target===$('accountPanel')) hideAccountPanel();
-});
+  $('createAccountBtn')?.addEventListener('click', openCreateAccount);
+  $('closeAccountPanel')?.addEventListener('click', hideAccountPanel);
+  $('closeAccountModal')?.addEventListener('click', closeCreateAccount);
 
-$('accountModal')?.addEventListener('click',e=>{
-  if(e.target===$('accountModal')) closeCreateAccount();
+  $('sendVerificationBtn')?.addEventListener('click', sendAccountVerification);
+  $('resendVerificationBtn')?.addEventListener('click', resendAccountVerification);
+  $('finishVerificationBtn')?.addEventListener('click', checkVerificationAndShowPassword);
+  $('setPasswordBtn')?.addEventListener('click', setPermanentPassword);
+  $('signOutBtn')?.addEventListener('click', signOutRepFuel);
+
+  $('accountPanel')?.addEventListener('click', (e) => {
+    if (e.target === $('accountPanel')) hideAccountPanel();
+  });
+
+  $('accountModal')?.addEventListener('click', (e) => {
+    if (e.target === $('accountModal')) closeCreateAccount();
+  });
+
 });
 
 $('exerciseSelect')?.addEventListener('change',selectExercise);
