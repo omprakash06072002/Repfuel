@@ -237,6 +237,117 @@
 }
 </style>
 
+<style id="repfuel-mobile-account-nav-fix">
+/* =========================================================
+   MOBILE ACCOUNT ACCESSIBILITY
+   Keep Profile permanently reachable on phones/tablets.
+   Cloud/auth logic is intentionally untouched.
+   ========================================================= */
+@media (max-width: 700px) {
+  .topbar {
+    height: auto !important;
+    min-height: 62px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      "brand actions"
+      "nav nav" !important;
+    align-items: center !important;
+    gap: 7px 10px !important;
+    padding: 9px 12px !important;
+    overflow: visible !important;
+  }
+
+  .topbar .brand {
+    grid-area: brand !important;
+    min-width: 0 !important;
+    width: auto !important;
+    flex: none !important;
+  }
+
+  .topbar .top-actions {
+    grid-area: actions !important;
+    display: flex !important;
+    flex: none !important;
+    gap: 6px !important;
+    min-width: max-content !important;
+  }
+
+  .topbar .top-actions .status {
+    display: none !important;
+  }
+
+  .topbar #editProfile {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    min-width: 86px !important;
+    padding: 9px 13px !important;
+    font-size: 12px !important;
+    border-radius: 11px !important;
+    white-space: nowrap !important;
+  }
+
+  .topbar .main-nav {
+    grid-area: nav !important;
+    position: static !important;
+    width: 100% !important;
+    height: 48px !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    padding: 4px !important;
+    margin: 0 !important;
+    background: rgba(11,15,13,.96) !important;
+    border: 1px solid #29312C !important;
+    border-radius: 14px !important;
+    overflow: visible !important;
+    flex: none !important;
+    box-shadow: none !important;
+  }
+
+  .topbar .main-nav .nav-item {
+    width: 100% !important;
+    height: 38px !important;
+    min-width: 0 !important;
+    padding: 6px 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-direction: row !important;
+    gap: 5px !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+
+  .topbar .main-nav .nav-item.active {
+    background: var(--lime) !important;
+    color: #0B0F0D !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .topbar {
+    padding-left: 9px !important;
+    padding-right: 9px !important;
+  }
+
+  .topbar #editProfile {
+    min-width: 78px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    font-size: 11px !important;
+  }
+
+  .topbar .brand strong { font-size: 16px !important; }
+  .topbar .brand span { font-size: 7px !important; }
+  .topbar .main-nav .nav-item { font-size: 10px !important; }
+}
+</style>
+
 
 <style id="repfuel-account-stage21">
 .account-panel{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.62);display:flex;align-items:flex-start;justify-content:center;padding:88px 18px 24px;overflow:auto;backdrop-filter:blur(8px)}
@@ -271,6 +382,407 @@
 }
 </style>
 
+
+<style id="repfuel-phase1-final-polish">
+/* =========================================================
+   REPFUEL 2.1.0 — PHASE 1 FINAL UI POLISH
+   Visual-only/responsive refinements. Cloud/account logic untouched.
+   ========================================================= */
+
+/* ---------- Shared touch + spacing ---------- */
+button,
+input,
+select {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#progressDashboard {
+  display: grid;
+  gap: 16px;
+}
+
+#progressDashboard .analytics-shell {
+  gap: 18px;
+}
+
+#progressDashboard .analytics-panel {
+  padding: 20px;
+}
+
+#progressDashboard .metric-grid {
+  gap: 12px;
+}
+
+#progressDashboard .metric-card {
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ---------- 7-day volume chart ---------- */
+#progressDashboard .chart-wrap {
+  height: 230px;
+  gap: 12px;
+}
+
+#progressDashboard .chart-y {
+  width: 48px;
+  padding: 4px 0 29px;
+  color: #69746d;
+  font-size: 10px;
+  line-height: 1;
+}
+
+#progressDashboard .bar-chart {
+  padding: 0 8px 28px;
+  gap: clamp(7px, 2vw, 16px);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 44px,
+      rgba(255,255,255,.055) 45px
+    );
+}
+
+#progressDashboard .bar-col {
+  gap: 8px;
+}
+
+#progressDashboard .bar {
+  width: min(42px, 72%);
+  min-height: 2px;
+}
+
+#progressDashboard .bar-value {
+  min-height: 12px;
+  color: #cbd3cd;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+#progressDashboard .bar-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #818c84;
+}
+
+/* ---------- Training split ---------- */
+#progressDashboard .donut-wrap {
+  min-height: 230px;
+  justify-content: center;
+  gap: clamp(18px, 3vw, 34px);
+}
+
+#progressDashboard .donut {
+  width: 150px;
+  height: 150px;
+  box-shadow: 0 0 0 1px rgba(163,255,18,.06);
+}
+
+#progressDashboard .donut:after {
+  width: 96px;
+  height: 96px;
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+#progressDashboard .donut-center strong {
+  font-size: 21px;
+  letter-spacing: -.02em;
+}
+
+#progressDashboard .donut-center span {
+  display: block;
+  margin-top: 3px;
+  font-size: 9px;
+}
+
+#progressDashboard .legend {
+  width: min(100%, 230px);
+  gap: 11px;
+}
+
+#progressDashboard .legend-row {
+  min-height: 30px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255,255,255,.045);
+  border-radius: 8px;
+  background: rgba(255,255,255,.018);
+}
+
+#progressDashboard .legend-row strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Progression + PR tables ---------- */
+#progressDashboard .progress-table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#progressDashboard .progress-row {
+  min-width: 720px;
+  min-height: 54px;
+  padding: 13px 16px;
+  grid-template-columns: minmax(220px, 2fr) .7fr .7fr 1fr 1.15fr;
+  gap: 14px;
+}
+
+#progressDashboard .progress-header {
+  min-height: 42px;
+  color: #7f8982;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+#progressDashboard .progress-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#progressDashboard .progress-row .progress-number {
+  color: #f5f7f5;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+#progressDashboard .progress-row:not(.progress-header) .progress-number:first-of-type {
+  color: var(--lime);
+}
+
+#progressDashboard .progress-row:not(.progress-header) {
+  color: #aeb8b1;
+}
+
+#progressDashboard .progress-table::-webkit-scrollbar {
+  height: 7px;
+}
+
+#progressDashboard .progress-table::-webkit-scrollbar-track {
+  background: #0b100d;
+}
+
+#progressDashboard .progress-table::-webkit-scrollbar-thumb {
+  background: #2c372f;
+  border-radius: 99px;
+}
+
+/* ---------- Personal records: dashboard feel ---------- */
+#progressDashboard .analytics-panel:has(.progress-header span:nth-child(4)) {
+  box-shadow: inset 0 1px 0 rgba(163,255,18,.025);
+}
+
+#progressDashboard .analytics-panel:last-child .progress-row:not(.progress-header) {
+  background: rgba(163,255,18,.008);
+}
+
+#progressDashboard .analytics-panel:last-child .progress-row:not(.progress-header):hover {
+  background: rgba(163,255,18,.035);
+}
+
+/* ---------- Workout hierarchy ---------- */
+.set-buttons {
+  align-self: end;
+}
+
+.set-buttons button,
+.exercise-footer button {
+  min-height: 50px;
+}
+
+#startSet {
+  box-shadow: 0 8px 24px rgba(163,255,18,.08);
+}
+
+#finishSet {
+  opacity: .9;
+}
+
+#finishSet:not(:disabled) {
+  opacity: 1;
+}
+
+.set-footer {
+  min-height: 42px;
+  padding-top: 2px;
+}
+
+.exercise-footer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.055);
+}
+
+.exercise-footer .secondary {
+  border-color: rgba(255,255,255,.11);
+}
+
+.exercise-footer .primary {
+  box-shadow: 0 8px 24px rgba(163,255,18,.08);
+}
+
+/* ---------- Tablet: stop squeezing desktop layout ---------- */
+@media (max-width: 1050px) {
+  .workout-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .workout-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workout-side .side-card {
+    min-width: 0;
+  }
+
+  .exercise-gallery {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #progressDashboard .analytics-two {
+    grid-template-columns: 1fr;
+  }
+
+  #progressDashboard .analytics-panel {
+    min-width: 0;
+  }
+}
+
+/* ---------- iPad / medium touch screens ---------- */
+@media (max-width: 900px) {
+  main {
+    padding-inline: 16px;
+  }
+
+  .workout-main {
+    padding: 22px;
+  }
+
+  .quick-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .exercise-footer {
+    position: sticky;
+    bottom: 8px;
+    z-index: 8;
+    margin-inline: -6px;
+    padding: 12px 6px 6px;
+    background: linear-gradient(to bottom, transparent, rgba(11,15,13,.96) 22%);
+  }
+
+  #progressDashboard .metric-card {
+    min-height: 104px;
+  }
+}
+
+/* ---------- Phone ---------- */
+@media (max-width: 650px) {
+  .workout-side {
+    grid-template-columns: 1fr;
+  }
+
+  .workout-main {
+    padding: 16px;
+  }
+
+  .exercise-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chip {
+    min-height: 44px;
+    padding-inline: 14px;
+  }
+
+  .set-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .set-buttons button,
+  .exercise-footer button {
+    min-height: 52px;
+  }
+
+  .exercise-footer {
+    flex-direction: column;
+  }
+
+  .exercise-footer button {
+    width: 100%;
+  }
+
+  #progressDashboard .analytics-panel {
+    padding: 15px;
+  }
+
+  #progressDashboard .chart-wrap {
+    height: 205px;
+  }
+
+  #progressDashboard .chart-y {
+    width: 42px;
+  }
+
+  #progressDashboard .bar-chart {
+    gap: 5px;
+    padding-inline: 3px;
+  }
+
+  #progressDashboard .bar {
+    width: min(30px, 78%);
+  }
+
+  #progressDashboard .donut-wrap {
+    min-height: 0;
+    padding: 12px 0;
+  }
+
+  #progressDashboard .donut {
+    width: 128px;
+    height: 128px;
+  }
+
+  #progressDashboard .donut:after {
+    width: 82px;
+    height: 82px;
+  }
+
+  #progressDashboard .legend {
+    width: 100%;
+  }
+
+  #progressDashboard .progress-row {
+    min-width: 720px;
+  }
+}
+
+@media (max-width: 430px) {
+  .exercise-gallery {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-stats {
+    gap: 8px;
+  }
+
+  .quick-stats div {
+    padding: 11px;
+  }
+
+  #progressDashboard .metric-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  #progressDashboard .analytics-hero {
+    padding: 18px;
+  }
+}
+
+</style>
 </head>
 <body>
 <header class="topbar"><div class="brand"><div class="logo">RF</div><div><strong>RepFuel</strong><span>workout intelligence · model 2.1.0</span></div></div><nav class="main-nav"><button type="button" class="nav-item active" data-section="workout" onclick="showRepFuelSection('workout')">⚒ Workout</button><button type="button" class="nav-item" data-section="progress" onclick="showRepFuelSection('progress')">▥ Progress</button><button type="button" class="nav-item" data-section="history" onclick="showRepFuelSection('history')">◷ History</button></nav><div class="top-actions"><div id="saveStatus" class="status">Local mode</div><button id="editProfile" class="top-btn">Profile</button></div></header>
