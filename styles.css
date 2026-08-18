@@ -1660,3 +1660,459 @@ select {
    ========================================================= */
 .account-profile-summary{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--border);background:#0d120f;border-radius:14px;margin:14px 0}.account-profile-avatar{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--lime);color:#0B0F0D;font-weight:950;font-size:13px}.account-profile-summary strong{display:block;font-size:14px}.account-profile-summary p{margin:3px 0 0;font-size:11px}.account-data-section{margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}.data-action-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.055)}.data-action-row:last-child{border-bottom:0}.data-action-row strong{font-size:12px}.data-action-row p{margin:4px 0 0;color:var(--muted);font-size:10px;line-height:1.45;max-width:410px}.data-action-row.destructive strong{color:#ffb3b3}.profile-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:10px 0 16px}.profile-edit-grid label{gap:6px}.profile-edit-card{width:min(680px,100%)}.account-cloud-row{display:flex;justify-content:space-between;gap:12px;padding:11px 14px;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;color:var(--muted);font-size:12px}.account-cloud-row strong{color:var(--lime)}
 @media(max-width:600px){.profile-edit-grid{grid-template-columns:1fr}.data-action-row{align-items:flex-start;flex-direction:column}.data-action-row button{width:100%}.account-cloud-row,.account-email-row{font-size:11px;flex-direction:column;gap:5px}.account-profile-summary{padding:12px}}
+
+
+/* =========================================================
+   REPFUEL 2.1.0 — PHASE 2.5.1 VISUAL CONSISTENCY
+   UI-only layer. No data/auth behavior changes.
+   ========================================================= */
+
+:root{
+  --ui-space-1:6px;
+  --ui-space-2:10px;
+  --ui-space-3:14px;
+  --ui-space-4:18px;
+  --ui-space-5:24px;
+  --ui-radius-sm:10px;
+  --ui-radius-md:14px;
+  --ui-radius-lg:18px;
+  --ui-border-soft:rgba(255,255,255,.065);
+  --ui-border-strong:rgba(255,255,255,.10);
+  --ui-panel:#0b1210;
+  --ui-panel-raised:#0e1512;
+  --ui-text-soft:rgba(245,247,245,.72);
+  --ui-text-faint:rgba(245,247,245,.48);
+}
+
+/* ---------- Global rhythm ---------- */
+main{
+  max-width:1450px;
+  margin:24px auto 42px;
+  padding:0 22px;
+}
+
+.card{
+  border-radius:var(--ui-radius-lg);
+  border-color:var(--ui-border-soft);
+  background:var(--card);
+  box-shadow:0 14px 40px rgba(0,0,0,.16);
+}
+
+.card + .card,
+.progress-section + .progress-section,
+.progress-card + .progress-card,
+.analytics-card + .analytics-card{
+  margin-top:14px;
+}
+
+h1,h2,h3{
+  text-wrap:balance;
+}
+
+h1{
+  font-weight:900;
+  letter-spacing:-.04em;
+}
+
+h2{
+  font-size:clamp(24px,3vw,30px);
+  font-weight:850;
+}
+
+h3{
+  font-weight:820;
+}
+
+.eyebrow{
+  letter-spacing:.12em;
+  color:var(--ui-text-faint);
+}
+
+.muted{
+  color:var(--ui-text-soft);
+}
+
+/* ---------- Top navigation ---------- */
+.topbar{
+  min-height:60px;
+  border-bottom-color:rgba(255,255,255,.07);
+}
+
+.brand{
+  gap:10px;
+}
+
+.brand strong{
+  font-size:20px;
+  font-weight:900;
+}
+
+.nav-item{
+  font-size:12px;
+  font-weight:800;
+  transition:
+    color .16s ease,
+    background .16s ease,
+    border-color .16s ease;
+}
+
+.nav-item:hover{
+  background:rgba(255,255,255,.025);
+}
+
+.nav-item.active{
+  background:rgba(163,255,18,.035);
+}
+
+.top-actions{
+  gap:8px;
+}
+
+/* ---------- Buttons ---------- */
+button{
+  min-height:40px;
+  padding:10px 14px;
+  border-radius:var(--ui-radius-sm);
+  border-width:1px;
+  font-size:12px;
+  font-weight:850;
+  letter-spacing:-.005em;
+  transition:
+    transform .14s ease,
+    background-color .14s ease,
+    border-color .14s ease,
+    box-shadow .14s ease,
+    opacity .14s ease;
+}
+
+button:active{
+  transform:translateY(1px) scale(.985);
+}
+
+button:disabled{
+  cursor:not-allowed;
+  opacity:.48;
+  transform:none;
+}
+
+.primary{
+  box-shadow:0 5px 18px rgba(163,255,18,.07);
+}
+
+.primary:hover{
+  box-shadow:0 7px 22px rgba(163,255,18,.11);
+}
+
+.secondary:hover,
+.ghost:hover{
+  background:#19211c;
+  border-color:rgba(255,255,255,.14);
+}
+
+.danger:hover{
+  border-color:#7a3038;
+  background:#3a171c;
+}
+
+/* ---------- Form controls ---------- */
+input,
+select{
+  min-height:42px;
+  border-radius:var(--ui-radius-sm);
+  border-color:var(--ui-border-strong);
+  background:#090e0c;
+  font-size:13px;
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+
+input:hover,
+select:hover{
+  border-color:rgba(255,255,255,.13);
+}
+
+input:focus,
+select:focus{
+  background:#0b110e;
+}
+
+/* ---------- Workout ---------- */
+.workout-main{
+  padding:26px;
+}
+
+.workout-head{
+  gap:24px;
+}
+
+.quick-stats{
+  gap:10px;
+  margin:18px 0 26px;
+}
+
+.quick-stats div{
+  min-height:76px;
+  padding:14px;
+  border-radius:var(--ui-radius-md);
+  border-color:var(--ui-border-soft);
+  background:#0b110e;
+}
+
+.quick-stats span{
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+
+.quick-stats strong{
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:-.025em;
+}
+
+.step-title{
+  min-height:34px;
+  margin:20px 0 12px;
+}
+
+.step-title>span{
+  width:29px;
+  height:29px;
+  flex:0 0 29px;
+  font-weight:900;
+}
+
+.step-title em{
+  font-size:10px;
+}
+
+.set-panel,
+.exercise-card,
+.workout-side .card{
+  border-radius:var(--ui-radius-md);
+  border-color:var(--ui-border-soft);
+}
+
+.set-grid{
+  gap:10px;
+}
+
+.set-grid input{
+  min-height:44px;
+}
+
+.set-buttons{
+  gap:9px;
+}
+
+.exercise-footer,
+.set-footer{
+  gap:10px;
+}
+
+/* ---------- Exercise cards ---------- */
+.exercise-gallery{
+  gap:10px;
+}
+
+.exercise-gallery > *{
+  border-radius:var(--ui-radius-md);
+}
+
+.real-art{
+  border-radius:inherit;
+}
+
+/* ---------- Progress ---------- */
+#progressCard{
+  margin-top:20px;
+}
+
+#progressCard .progress-section,
+#progressCard .progress-card,
+#progressCard .analytics-card{
+  border-radius:var(--ui-radius-lg);
+  border-color:var(--ui-border-soft);
+  background:rgba(255,255,255,.014);
+}
+
+#progressDashboard .insight-card,
+.progress-summary > *,
+.progress-stats > *,
+.stats-grid > *{
+  border-radius:var(--ui-radius-md);
+  border-color:var(--ui-border-soft);
+  background:#0b1210;
+}
+
+#progressDashboard .insight-card strong{
+  font-weight:900;
+  letter-spacing:-.035em;
+}
+
+#progressDashboard .trend-summary{
+  color:var(--ui-text-faint);
+}
+
+/* ---------- History ---------- */
+.history-list{
+  gap:12px;
+}
+
+.history-workout-card{
+  border-radius:var(--ui-radius-lg);
+  border-color:var(--ui-border-soft);
+  background:#0b1210;
+  box-shadow:0 8px 26px rgba(0,0,0,.10);
+}
+
+.history-workout-card:hover{
+  border-color:rgba(255,255,255,.12);
+}
+
+.history-workout-card[open]{
+  border-color:rgba(163,255,18,.18);
+}
+
+.history-workout-summary{
+  min-height:82px;
+}
+
+.history-summary-metrics{
+  gap:8px;
+}
+
+.history-summary-metrics > *{
+  border-radius:10px;
+}
+
+/* ---------- Profile / Account ---------- */
+.profile-box{
+  padding:26px;
+}
+
+.account-profile-summary,
+.account-cloud-row{
+  border-color:var(--ui-border-soft);
+  background:#0b1210;
+  border-radius:var(--ui-radius-md);
+}
+
+.account-profile-avatar{
+  border-radius:12px;
+}
+
+.account-data-section{
+  margin-top:24px;
+  padding-top:20px;
+}
+
+.data-action-row{
+  min-height:68px;
+  padding:14px 2px;
+}
+
+.profile-edit-grid{
+  gap:10px;
+}
+
+.profile-edit-card{
+  border-radius:var(--ui-radius-lg);
+}
+
+/* ---------- Consistent empty/loading surfaces ---------- */
+.empty-state,
+.progress-empty,
+.history-empty{
+  border-color:rgba(255,255,255,.10);
+  border-radius:var(--ui-radius-md);
+  background:rgba(255,255,255,.012);
+}
+
+/* ---------- Consistent focus accessibility ---------- */
+button:focus-visible,
+.nav-item:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible{
+  outline:2px solid rgba(163,255,18,.8);
+  outline-offset:2px;
+}
+
+/* ---------- Tablet ---------- */
+@media(max-width:1050px){
+  main{
+    margin-top:18px;
+    padding:0 18px;
+  }
+
+  .workout-main{
+    padding:22px;
+  }
+
+  .progress-section,
+  .progress-card,
+  .analytics-card{
+    padding:18px;
+  }
+}
+
+/* ---------- Phone ---------- */
+@media(max-width:640px){
+  main{
+    margin-top:12px;
+    margin-bottom:28px;
+    padding:0 10px;
+  }
+
+  .card{
+    border-radius:15px;
+  }
+
+  .workout-main,
+  .profile-box{
+    padding:16px;
+  }
+
+  .quick-stats{
+    gap:8px;
+    margin:15px 0 21px;
+  }
+
+  .quick-stats div{
+    min-height:72px;
+    padding:12px;
+  }
+
+  .quick-stats strong{
+    font-size:18px;
+  }
+
+  button{
+    min-height:44px;
+    padding:10px 13px;
+  }
+
+  .progress-section,
+  .progress-card,
+  .analytics-card{
+    padding:15px;
+    border-radius:15px;
+  }
+
+  #progressDashboard .insight-card{
+    border-radius:13px;
+  }
+
+  .history-workout-card{
+    border-radius:15px;
+  }
+
+  .history-workout-summary{
+    min-height:74px;
+  }
+
+  .data-action-row{
+    padding:13px 0;
+  }
+}
