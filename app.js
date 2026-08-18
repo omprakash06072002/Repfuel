@@ -445,8 +445,20 @@ function renderExercises(){
   const gallery=$('exerciseGallery');
   const select=$('exerciseSelect');
   if(!gallery||!select) return;
-  state.selectedParts=Array.isArray(state.selectedParts)?state.selectedParts:[];
-  state.exerciseOptions=state.selectedParts.filter(p=>EXERCISES[p]).flatMap(p=>(EXERCISES[p]||[]).map(e=>({bodyPart:p,name:e[0],equipment:e[1],family:e[2]})));
+
+  // Keep the category selection and exercise list in sync.
+  // On some mobile/tablet browsers the visual chip state can survive a
+  // re-render while the JS array is temporarily empty. Recover the
+  // selected categories from the active chips before building the list.
+  let selected=Array.isArray(state.selectedParts)?state.selectedParts.filter(p=>EXERCISES[p]):[];
+  if(!selected.length){
+    selected=[...document.querySelectorAll('#bodyParts .chip.active')]
+      .map(btn=>btn.dataset.part)
+      .filter(p=>EXERCISES[p]);
+    if(selected.length) state.selectedParts=selected;
+  }
+
+  state.exerciseOptions=selected.flatMap(p=>(EXERCISES[p]||[]).map(e=>({bodyPart:p,name:e[0],equipment:e[1],family:e[2]})));
   $('exerciseSelect').innerHTML=state.exerciseOptions.length
     ? state.exerciseOptions.map((e,i)=>`<option value="${i}">${e.bodyPart} · ${e.name}</option>`).join('')
     : '<option value="">Choose a category first</option>';
