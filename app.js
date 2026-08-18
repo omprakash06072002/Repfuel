@@ -795,18 +795,7 @@ $('clearHistory')?.addEventListener('click',async()=>{
 });
 
 $('editProfile')?.addEventListener('click',()=>{
-  ['workoutCard','progressCard','summaryCard','historyCard']
-    .forEach(id=>$(id)?.classList.add('hidden'));
-
-  $('profileCard')?.classList.remove('hidden');
-
-  document.querySelectorAll('.nav-item')
-    .forEach(b=>b.classList.toggle(
-      'active',
-      b.dataset.section==='workout'
-    ));
-
-  window.scrollTo({top:0,behavior:'smooth'});
+  showAccountPanel();
 });
 async function showRepFuelSection(section){
   const views=['workoutCard','progressCard','historyCard'];
