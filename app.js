@@ -142,7 +142,6 @@ function renderProgressDashboard(rows){
   const avgVol=d.workouts.length?d.totalVolume/d.workouts.length:0;
   const best=d.workouts.reduce((a,w)=>Math.max(a,w.volume),0);
   const recent=progressDaySeries(rows||[]);
-  const maxBar=Math.max(...recent.map(x=>x.volume),1);
   const split=categorySplit(rows||[]);
   const totalSplit=split.reduce((a,x)=>a+x[1],0)||1;
   const top=d.exercises.slice(0,8);
@@ -159,7 +158,16 @@ function renderProgressDashboard(rows){
     return;
   }
 
-  const chartBars=recent.map(x=>`<div class="bar-col" title="${x.label}: ${Math.round(x.volume).toLocaleString()} kg"><span class="bar-value">${x.volume?Math.round(x.volume/1000*10)/10+'k':''}</span><div class="bar" style="height:${Math.max(3,(x.volume/maxBar)*145)}px"></div><span class="bar-label">${x.label}</span></div>`).join('');
+  const formatVolumeTick=value=>{
+    const n=Math.round(Number(value)||0);
+    if(n>=1000)return `${(n/1000).toFixed(n>=10000?0:1).replace(/\.0$/,'')}k`;
+    return n.toLocaleString();
+  };
+  const chartMax=Math.max(...recent.map(x=>Number(x.volume)||0),0);
+  const chartScale=chartMax>0?chartMax:1000;
+  const chartTicks=[chartScale,chartScale/2,0];
+  const chartBars=recent.map(x=>`<div class="bar-col" title="${x.label}: ${Math.round(x.volume).toLocaleString()} kg"><span class="bar-value">${x.volume?formatVolumeTick(x.volume):''}</span><div class="bar" style="height:${Math.max(x.volume?4:2,(x.volume/chartScale)*145)}px"></div><span class="bar-label">${x.label}</span></div>`).join('');
+  const chartYAxis=chartTicks.map(v=>`<span>${formatVolumeTick(v)}</span>`).join('');
   const colors=['#A3FF12','#71ad0c','#3f5d1c','#263229'];
   let cumulative=0;
   const stops=split.length?split.map((x,i)=>{const pct=x[1]/totalSplit*100;const s=`${colors[i]} ${cumulative.toFixed(1)}% ${(cumulative+pct).toFixed(1)}%`;cumulative+=pct;return s}).join(', '):'#263229 0 100%';
@@ -182,22 +190,22 @@ function renderProgressDashboard(rows){
     <div class="analytics-two">
       <div class="analytics-panel">
         <div class="panel-heading"><div><h3>7-day training volume</h3><p>Daily logged resistance volume</p></div><strong class="pr-badge">${Math.round(weekVol).toLocaleString()} kg</strong></div>
-        <div class="chart-wrap"><div class="chart-y"><span>${Math.round(maxBar).toLocaleString()}</span><span>${Math.round(maxBar*.5).toLocaleString()}</span><span>0</span></div><div class="bar-chart">${chartBars}</div></div>
+        <div class="chart-wrap" aria-label="7-day training volume chart"><div class="chart-y">${chartYAxis}</div><div class="bar-chart">${chartBars}</div></div>
       </div>
       <div class="analytics-panel">
         <div class="panel-heading"><div><h3>Training split</h3><p>All-time volume by body part</p></div></div>
-        <div class="donut-wrap"><div class="donut" style="background:conic-gradient(${stops})"><div class="donut-center"><strong>${Math.round(monthVol/1000*10)/10}k</strong><span>kg / 30 days</span></div></div><div class="legend">${legend}</div></div>
+        <div class="donut-wrap"><div class="donut" style="background:conic-gradient(${stops})" role="img" aria-label="Training split by body part"><div class="donut-center"><strong>${formatVolumeTick(totalSplit)}</strong><span>kg all-time</span></div></div><div class="legend">${legend}</div></div>
       </div>
     </div>
 
     <div class="analytics-panel">
       <div class="panel-heading"><div><p class="eyebrow">EXERCISE PROGRESSION</p><h3>Highest training volume</h3><p>Exercises ranked by total logged volume.</p></div><span class="history-count">${d.exercises.length} exercises</span></div>
-      ${top.length?`<div class="progress-table"><div class="progress-row progress-header"><span>Exercise</span><span>Sessions</span><span>Sets</span><span>Volume</span><span>Best load</span></div>${top.map(x=>`<div class="progress-row"><strong>${x.name}</strong><span>${x.sessions}</span><span>${x.sets}</span><span>${Math.round(x.volume).toLocaleString()} kg</span><span>${x.bestLoad?fmt(x.bestLoad)+' kg':'Bodyweight'}</span></div>`).join('')}</div>`:'<div class="empty-analytics"><h3>No exercise data yet</h3></div>'}
+      ${top.length?`<div class="progress-table"><div class="progress-row progress-header"><span>Exercise</span><span>Sessions</span><span>Sets</span><span>Volume</span><span>Best load</span></div>${top.map(x=>`<div class="progress-row"><strong>${x.name}</strong><span>${x.sessions}</span><span>${x.sets}</span><span class="progress-number">${Math.round(x.volume).toLocaleString()} kg</span><span class="progress-number">${x.bestLoad?fmt(x.bestLoad)+' kg':'Bodyweight'}</span></div>`).join('')}</div>`:'<div class="empty-analytics"><h3>No exercise data yet</h3></div>'}
     </div>
 
     <div class="analytics-panel">
       <div class="panel-heading"><div><p class="eyebrow">PERSONAL RECORDS</p><h3>Best recorded sets</h3><p>Highest load and estimated 1RM from your logged sets.</p></div></div>
-      ${pr.length?`<div class="progress-table"><div class="progress-row progress-header"><span>Exercise</span><span>Best load</span><span>Best reps</span><span>Est. 1RM</span><span>Last set</span></div>${pr.map(x=>`<div class="progress-row"><strong>${x.name}</strong><span>${x.bestLoad?fmt(x.bestLoad)+' kg':'Bodyweight'}</span><span>${x.bestReps||0}</span><span>${x.bestE1RM?fmt(x.bestE1RM)+' kg':'—'}</span><span>${x.lastLoad?fmt(x.lastLoad)+' kg × '+x.lastReps:'Bodyweight × '+(x.lastReps||0)}</span></div>`).join('')}</div>`:'<div class="empty-analytics"><h3>Your PRs will appear here</h3></div>'}
+      ${pr.length?`<div class="progress-table"><div class="progress-row progress-header"><span>Exercise</span><span>Best load</span><span>Best reps</span><span>Est. 1RM</span><span>Last set</span></div>${pr.map(x=>`<div class="progress-row"><strong>${x.name}</strong><span class="progress-number">${x.bestLoad?fmt(x.bestLoad)+' kg':'Bodyweight'}</span><span class="progress-number">${x.bestReps||0}</span><span class="progress-number">${x.bestE1RM?fmt(x.bestE1RM)+' kg':'—'}</span><span>${x.lastLoad?fmt(x.lastLoad)+' kg × '+x.lastReps:'Bodyweight × '+(x.lastReps||0)}</span></div>`).join('')}</div>`:'<div class="empty-analytics"><h3>Your PRs will appear here</h3></div>'}
     </div>
   </div>`;
 }
