@@ -788,6 +788,7 @@ function showAccountPanel(){
 function hideAccountPanel(){
   $('accountPanel')?.classList.add('hidden');
   $('accountModal')?.classList.add('hidden');
+  $('signInModal')?.classList.add('hidden');
 }
 
 async function updateAccountPanel(){
@@ -801,12 +802,13 @@ async function updateAccountPanel(){
 
   if(permanent){
     $('accountStatusTitle').textContent='Permanent account';
-    $('accountStatusText').textContent='Your RepFuel account can be recovered on another device using your email and password.';
+    $('accountStatusText').textContent='Signed in. This account can be used on multiple phones, tablets, and computers.';
     $('accountEmail').textContent=user.email||'—';
+    $('accountCloudStatus').textContent='✓ Connected';
     $('saveStatus').textContent='☁ Account synced';
   }else{
     $('accountStatusTitle').textContent='Guest account';
-    $('accountStatusText').textContent='Your workouts are cloud-synced, but this guest identity cannot be recovered after sign-out or on another device.';
+    $('accountStatusText').textContent='Your workouts are cloud-synced to this temporary guest session. Create an account to keep it recoverable across devices.';
     $('saveStatus').textContent='☁ Guest synced';
   }
 }
@@ -965,6 +967,60 @@ async function setPermanentPassword(){
   }finally{$('setPasswordBtn').disabled=false;}
 }
 
+function openSignIn(){
+  $('accountPanel')?.classList.add('hidden');
+  $('signInModal')?.classList.remove('hidden');
+  $('signInError')?.classList.add('hidden');
+  $('signInPassword').value='';
+  $('signInEmail').focus();
+}
+
+function closeSignIn(){
+  $('signInModal')?.classList.add('hidden');
+}
+
+async function signInRepFuel(){
+  if(!window.repSupabase?.auth){showAccountError('signInError','Cloud account services are not available right now.');return;}
+  const email=$('signInEmail').value.trim();
+  const password=$('signInPassword').value;
+  if(!email || !email.includes('@')){showAccountError('signInError','Please enter a valid email address.');return;}
+  if(!password){showAccountError('signInError','Please enter your password.');return;}
+
+  $('submitSignInBtn').disabled=true;
+  try{
+    const {data,error}=await repSupabase.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    if(!data?.user || data.user.is_anonymous){throw new Error('The sign-in did not return a permanent RepFuel account.');}
+
+    // Pull the account-owned profile into this device so the same account
+    // behaves consistently across phones, tablets, and desktop browsers.
+    const cloudProfile=await loadProfileFromCloud();
+    $('signInModal').classList.add('hidden');
+    $('accountPanel').classList.remove('hidden');
+    await updateAccountPanel();
+    if(cloudProfile){
+      enterWorkout(cloudProfile);
+    }else{
+      const local=JSON.parse(localStorage.getItem('repfuel_profile')||'null');
+      if(local) enterWorkout(local);
+      else showAccountPanel();
+    }
+    await renderHistory();
+    $('saveStatus').textContent='☁ Account synced';
+  }catch(e){
+    console.error('RepFuel sign-in failed:',e);
+    const msg=String(e?.message||e||'');
+    const lower=msg.toLowerCase();
+    if(lower.includes('invalid login credentials')){
+      showAccountError('signInError','Email or password is incorrect. Check both and try again.');
+    }else if(lower.includes('email not confirmed')){
+      showAccountError('signInError','Please verify your email before signing in.');
+    }else{
+      showAccountError('signInError',msg||'Could not sign in. Please try again.');
+    }
+  }finally{$('submitSignInBtn').disabled=false;}
+}
+
 async function signOutRepFuel(){
   if(!window.repSupabase?.auth)return;
   const {error}=await repSupabase.auth.signOut();
@@ -989,6 +1045,11 @@ document.addEventListener('DOMContentLoaded', () => {
   $('finishVerificationBtn')?.addEventListener('click', checkVerificationAndShowPassword);
   $('setPasswordBtn')?.addEventListener('click', setPermanentPassword);
   $('signOutBtn')?.addEventListener('click', signOutRepFuel);
+  $('signInBtn')?.addEventListener('click', openSignIn);
+  $('closeSignInModal')?.addEventListener('click', closeSignIn);
+  $('submitSignInBtn')?.addEventListener('click', signInRepFuel);
+  $('openCreateFromSignIn')?.addEventListener('click',()=>{closeSignIn();openCreateAccount();});
+  $('signInPassword')?.addEventListener('keydown',e=>{if(e.key==='Enter')signInRepFuel();});
 
   $('accountPanel')?.addEventListener('click', (e) => {
     if (e.target === $('accountPanel')) hideAccountPanel();
@@ -996,6 +1057,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('accountModal')?.addEventListener('click', (e) => {
     if (e.target === $('accountModal')) closeCreateAccount();
+  });
+
+  $('signInModal')?.addEventListener('click', (e) => {
+    if (e.target === $('signInModal')) closeSignIn();
   });
 
 });

@@ -903,10 +903,13 @@ select {
     </div>
     <div class="account-actions" id="guestAccountActions">
       <button type="button" class="primary" id="createAccountBtn">Create permanent account</button>
-      <p class="account-note">Creating an account keeps your existing RepFuel user ID, so your cloud workouts remain attached to you.</p>
+      <button type="button" class="ghost" id="signInBtn">Sign in to existing account</button>
+      <p class="account-note">Create an account to keep this guest identity. If you already have a RepFuel account, sign in with the same email and password on any device.</p>
     </div>
     <div class="account-actions hidden" id="permanentAccountActions">
       <div class="account-email-row"><span>Email</span><strong id="accountEmail">—</strong></div>
+      <div class="account-cloud-row"><span>Cloud sync</span><strong id="accountCloudStatus">✓ Connected</strong></div>
+      <p class="account-note">This same account can be used on your phone, tablet, and computer. Your cloud workouts and profile follow your account.</p>
       <button type="button" class="ghost danger" id="signOutBtn">Sign out</button>
     </div>
   </div>
@@ -950,6 +953,31 @@ select {
       <button type="button" class="primary large" id="setPasswordBtn">Finish account setup →</button>
       <div id="passwordError" class="form-error hidden"></div>
     </div>
+  </div>
+</div>
+
+<div id="signInModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="signInModalTitle">
+  <div class="modal-card">
+    <div class="account-head">
+      <div>
+        <p class="eyebrow">WELCOME BACK</p>
+        <h2 id="signInModalTitle">Sign in to RepFuel</h2>
+        <p class="muted">Use the same email and password you use on your other devices.</p>
+      </div>
+      <button type="button" class="ghost" id="closeSignInModal">×</button>
+    </div>
+
+    <div class="signin-device-note">
+      <span class="account-dot"></span>
+      <div><strong>One account, multiple devices</strong><p class="muted">Sign in on another phone, iPad, or computer to access the same cloud data.</p></div>
+    </div>
+
+    <label>Email <input id="signInEmail" type="email" autocomplete="email" placeholder="you@example.com"></label>
+    <label>Password <input id="signInPassword" type="password" autocomplete="current-password" placeholder="Your password"></label>
+    <button type="button" class="primary large" id="submitSignInBtn">Sign in →</button>
+    <button type="button" class="ghost large" id="openCreateFromSignIn">Create a new account</button>
+    <div id="signInError" class="form-error hidden"></div>
+    <p class="account-note">Your existing cloud workouts stay attached to your RepFuel account when you sign in.</p>
   </div>
 </div>
 
