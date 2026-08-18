@@ -1142,3 +1142,293 @@ select {
     padding-inline: 14px;
   }
 }
+/* =========================================================
+   REPFUEL — PHASE 1 / STEP 2
+   PROGRESS DASHBOARD POLISH
+   ========================================================= */
+
+#progressCard {
+  width: min(1440px, calc(100% - 32px));
+  margin: 24px auto 48px;
+}
+
+#progressCard > h2 {
+  margin-bottom: 6px;
+  font-size: clamp(26px, 3vw, 38px);
+  letter-spacing: -.035em;
+}
+
+#progressCard > .muted {
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+/* ---------- Progress summary ---------- */
+
+.progress-summary,
+.progress-stats,
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.progress-summary > *,
+.progress-stats > *,
+.stats-grid > * {
+  min-height: 100px;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 15px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.035),
+      rgba(255,255,255,.012)
+    );
+  transition:
+    transform .18s ease,
+    border-color .18s ease,
+    background .18s ease;
+}
+
+.progress-summary > *:hover,
+.progress-stats > *:hover,
+.stats-grid > *:hover {
+  transform: translateY(-2px);
+  border-color: rgba(163,255,18,.2);
+  background: rgba(163,255,18,.035);
+}
+
+/* ---------- Progress sections ---------- */
+
+.progress-section,
+.progress-card,
+.analytics-card {
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 17px;
+  background: rgba(255,255,255,.018);
+}
+
+.progress-section h3,
+.progress-card h3,
+.analytics-card h3 {
+  margin: 0 0 5px;
+  font-size: 17px;
+  letter-spacing: -.015em;
+}
+
+.progress-section > .muted,
+.progress-card > .muted,
+.analytics-card > .muted {
+  font-size: 11px;
+}
+
+/* ---------- Volume chart ---------- */
+
+.volume-chart,
+#volumeChart {
+  margin-top: 16px;
+  min-height: 220px;
+  border-radius: 13px;
+  overflow: hidden;
+}
+
+/* ---------- Training split ---------- */
+
+.training-split,
+#trainingSplit {
+  display: grid;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.training-split > *,
+#trainingSplit > * {
+  padding: 13px 15px;
+  border-radius: 11px;
+  background: rgba(255,255,255,.025);
+  border: 1px solid rgba(255,255,255,.055);
+}
+
+/* ---------- Exercise performance ---------- */
+
+.exercise-performance,
+#exercisePerformance {
+  margin-top: 14px;
+}
+
+.exercise-performance-row,
+#exercisePerformance > * {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.5fr) repeat(4, minmax(70px, 1fr));
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.055);
+}
+
+.exercise-performance-row:first-child {
+  border-top: 1px solid rgba(255,255,255,.055);
+}
+
+.exercise-performance-row:hover {
+  background: rgba(163,255,18,.025);
+}
+
+/* ---------- Best performance ---------- */
+
+.best-performance,
+#bestPerformance {
+  margin-top: 16px;
+  padding: 17px;
+  border: 1px solid rgba(163,255,18,.12);
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(163,255,18,.06),
+      transparent 40%
+    ),
+    rgba(255,255,255,.018);
+}
+
+.best-performance strong,
+#bestPerformance strong {
+  color: #a3ff12;
+}
+
+/* ---------- Progress filter buttons ---------- */
+
+.progress-filters,
+.time-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 15px 0;
+}
+
+.progress-filters button,
+.time-filters button {
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.025);
+  color: rgba(255,255,255,.7);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.progress-filters button:hover,
+.time-filters button:hover {
+  border-color: rgba(163,255,18,.3);
+}
+
+.progress-filters button.active,
+.time-filters button.active {
+  background: #a3ff12;
+  border-color: #a3ff12;
+  color: #071006;
+}
+
+/* ---------- Empty state ---------- */
+
+.progress-empty,
+.history-empty,
+.empty-state {
+  min-height: 170px;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  border: 1px dashed rgba(255,255,255,.1);
+  border-radius: 14px;
+  color: rgba(255,255,255,.42);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* ---------- Progress grid ---------- */
+
+.progress-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+/* ---------- Tablet ---------- */
+
+@media (max-width: 1000px) {
+
+  #progressCard {
+    width: min(100% - 24px, 900px);
+    margin-top: 16px;
+  }
+
+  .progress-summary,
+  .progress-stats,
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .progress-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .exercise-performance-row,
+  #exercisePerformance > * {
+    grid-template-columns:
+      minmax(130px, 1.4fr)
+      repeat(4, minmax(60px, 1fr));
+  }
+}
+
+/* ---------- Phone ---------- */
+
+@media (max-width: 640px) {
+
+  #progressCard {
+    width: calc(100% - 16px);
+    margin: 10px auto 32px;
+  }
+
+  .progress-summary,
+  .progress-stats,
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .progress-summary > *,
+  .progress-stats > *,
+  .stats-grid > * {
+    min-height: 82px;
+    padding: 13px;
+  }
+
+  .progress-section,
+  .progress-card,
+  .analytics-card {
+    padding: 15px;
+    border-radius: 15px;
+  }
+
+  .exercise-performance,
+  #exercisePerformance {
+    overflow-x: auto;
+  }
+
+  .exercise-performance-row,
+  #exercisePerformance > * {
+    min-width: 560px;
+  }
+
+  .volume-chart,
+  #volumeChart {
+    min-height: 190px;
+  }
+}
