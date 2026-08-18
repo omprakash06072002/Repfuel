@@ -134,12 +134,61 @@ function categorySplit(rows){
   }));
   return Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,4);
 }
+function progressPeriodSeries(rows, mode='week', count=8){
+  const items=(rows||[]).map(w=>({
+    ...w,
+    date:new Date(w.ended_at||w.created_at||w.started_at||0),
+    volume:Number(w.summary?.volume||0),
+    sets:Number(w.summary?.sets||0),
+    kcal:Number(w.summary?.netKcal||0)
+  })).filter(w=>!Number.isNaN(w.date.getTime()));
+  const out=[];
+  const now=new Date();
+  now.setHours(0,0,0,0);
+  if(mode==='week'){
+    const day=now.getDay();
+    const mondayOffset=(day+6)%7;
+    const thisMonday=new Date(now);
+    thisMonday.setDate(now.getDate()-mondayOffset);
+    for(let i=count-1;i>=0;i--){
+      const start=new Date(thisMonday); start.setDate(thisMonday.getDate()-i*7);
+      const end=new Date(start); end.setDate(start.getDate()+7);
+      const bucket=items.filter(w=>w.date>=start&&w.date<end);
+      out.push({
+        label:i===0?'This week':start.toLocaleDateString(undefined,{month:'short',day:'numeric'}),
+        short:start.toLocaleDateString(undefined,{month:'short',day:'numeric'}),
+        volume:bucket.reduce((a,w)=>a+w.volume,0),
+        sets:bucket.reduce((a,w)=>a+w.sets,0),
+        kcal:bucket.reduce((a,w)=>a+w.kcal,0),
+        workouts:bucket.length
+      });
+    }
+  }else{
+    const first=new Date(now.getFullYear(),now.getMonth()-count+1,1);
+    for(let i=0;i<count;i++){
+      const start=new Date(first.getFullYear(),first.getMonth()+i,1);
+      const end=new Date(start.getFullYear(),start.getMonth()+1,1);
+      const bucket=items.filter(w=>w.date>=start&&w.date<end);
+      out.push({
+        label:start.toLocaleDateString(undefined,{month:'short'}),
+        short:start.toLocaleDateString(undefined,{month:'short',year:'numeric'}),
+        volume:bucket.reduce((a,w)=>a+w.volume,0),
+        sets:bucket.reduce((a,w)=>a+w.sets,0),
+        kcal:bucket.reduce((a,w)=>a+w.kcal,0),
+        workouts:bucket.length
+      });
+    }
+  }
+  return out;
+}
 function renderProgressDashboard(rows){
   const d=dashboardData(rows||[]);
   const el=$('progressDashboard'); if(!el)return;
   const weekVol=d.recent7.reduce((a,w)=>a+w.volume,0);
   const monthVol=d.recent30.reduce((a,w)=>a+w.volume,0);
   const avgVol=d.workouts.length?d.totalVolume/d.workouts.length:0;
+  const avgSets=d.workouts.length?d.totalSets/d.workouts.length:0;
+  const avgKcal=d.workouts.length?d.totalKcal/d.workouts.length:0;
   const best=d.workouts.reduce((a,w)=>Math.max(a,w.volume),0);
   const recent=progressDaySeries(rows||[]);
   const split=categorySplit(rows||[]);
@@ -149,11 +198,26 @@ function renderProgressDashboard(rows){
   const totalSets=d.totalSets;
   const totalKcal=Math.round(d.totalKcal);
   const bestExercise=pr[0];
+  const weekly=progressPeriodSeries(rows||[],'week',8);
+  const monthly=progressPeriodSeries(rows||[],'month',6);
+  const currentWeek=weekly[weekly.length-1];
+  const previousWeek=weekly[weekly.length-2];
+  const currentMonth=monthly[monthly.length-1];
+  const previousMonth=monthly[monthly.length-2];
+  const pctChange=(current,previous)=>{
+    if(!previous || previous===0)return null;
+    return ((current-previous)/previous)*100;
+  };
+  const weekVolumeChange=pctChange(currentWeek?.volume||0,previousWeek?.volume||0);
+  const monthVolumeChange=pctChange(currentMonth?.volume||0,previousMonth?.volume||0);
+  const frequencyLast4=weekly.slice(-4).reduce((a,w)=>a+w.workouts,0);
+  const frequencyPrev4=weekly.slice(-8,-4).reduce((a,w)=>a+w.workouts,0);
+  const frequencyChange=pctChange(frequencyLast4,frequencyPrev4);
 
   if(!d.workouts.length){
     el.innerHTML=`<div class="analytics-shell">
-      <div class="analytics-hero"><div><p class="eyebrow">03 · PROGRESS</p><h2>Your training dashboard</h2><p class="muted">Your charts, volume trends and personal records will appear here after your first saved workout.</p></div><span class="sync-pill"><i class="sync-dot"></i> Cloud connected</span></div>
-      <div class="empty-analytics"><div class="empty-icon">↗</div><h3>Your progress starts with your first workout</h3><p>Finish a workout and RepFuel will automatically calculate volume, training frequency, exercise progression and personal records.</p><br><button class="primary" type="button" onclick="showRepFuelSection('workout')">Start a workout →</button></div>
+      <div class="analytics-hero"><div><p class="eyebrow">03 · PROGRESS</p><h2>Your training dashboard</h2><p class="muted">Your charts, trends and personal records will appear here after your first saved workout.</p></div><span class="sync-pill"><i class="sync-dot"></i> Cloud connected</span></div>
+      <div class="empty-analytics"><div class="empty-icon">↗</div><h3>Your progress starts with your first workout</h3><p>Finish a workout and RepFuel will build volume, frequency, calorie and strength trends automatically.</p><br><button class="primary" type="button" onclick="showRepFuelSection('workout')">Start a workout →</button></div>
     </div>`;
     return;
   }
@@ -163,6 +227,11 @@ function renderProgressDashboard(rows){
     if(n>=1000)return `${(n/1000).toFixed(n>=10000?0:1).replace(/\.0$/,'')}k`;
     return n.toLocaleString();
   };
+  const trendMarkup=(value,label)=>{
+    if(value===null)return `<span class="trend neutral">No prior data</span>`;
+    const up=value>0, flat=Math.abs(value)<0.1;
+    return `<span class="trend ${flat?'neutral':up?'up':'down'}">${flat?'→':up?'↑':'↓'} ${Math.abs(value).toFixed(0)}% ${label}</span>`;
+  };
   const chartMax=Math.max(...recent.map(x=>Number(x.volume)||0),0);
   const chartScale=chartMax>0?chartMax:1000;
   const chartTicks=[chartScale,chartScale/2,0];
@@ -171,20 +240,31 @@ function renderProgressDashboard(rows){
   const colors=['#A3FF12','#71ad0c','#3f5d1c','#263229'];
   let cumulative=0;
   const stops=split.length?split.map((x,i)=>{const pct=x[1]/totalSplit*100;const s=`${colors[i]} ${cumulative.toFixed(1)}% ${(cumulative+pct).toFixed(1)}%`;cumulative+=pct;return s}).join(', '):'#263229 0 100%';
-  const legend=split.length?split.map((x,i)=>`<div class="legend-row"><i class="legend-dot" style="background:${colors[i]}"></i><span>${x[0]}</span><strong>${Math.round(x[1]).toLocaleString()} kg</strong></div>`).join(''):'<div class="muted">No exercise volume yet.</div>';
+  const legend=split.length?split.map((x,i)=>`<div class="legend-row"><i class="legend-dot" style="background:${colors[i]}" ></i><span>${x[0]}</span><strong>${Math.round(x[1]).toLocaleString()} kg</strong></div>`).join(''):'<div class="muted">No exercise volume yet.</div>';
+  const weeklyMax=Math.max(...weekly.map(x=>x.volume),1);
+  const monthlyMax=Math.max(...monthly.map(x=>x.volume),1);
+  const weeklyBars=weekly.map(x=>`<div class="trend-bar-col" title="${x.short}: ${Math.round(x.volume).toLocaleString()} kg"><div class="trend-bar-value">${x.volume?formatVolumeTick(x.volume):''}</div><div class="trend-bar" style="height:${Math.max(x.volume?6:2,(x.volume/weeklyMax)*118)}px"></div><span>${x.label}</span></div>`).join('');
+  const monthlyBars=monthly.map(x=>`<div class="trend-bar-col" title="${x.short}: ${Math.round(x.volume).toLocaleString()} kg"><div class="trend-bar-value">${x.volume?formatVolumeTick(x.volume):''}</div><div class="trend-bar" style="height:${Math.max(x.volume?6:2,(x.volume/monthlyMax)*118)}px"></div><span>${x.label}</span></div>`).join('');
 
   el.innerHTML=`
   <div class="analytics-shell">
     <div class="analytics-hero">
-      <div><p class="eyebrow">03 · PROGRESS</p><h2>Your training dashboard</h2><p class="muted">A live view of your RepFuel training history.</p></div>
+      <div><p class="eyebrow">03 · PROGRESS</p><h2>Your training dashboard</h2><p class="muted">A live view of your volume, frequency, calories and strength progression.</p></div>
       <span class="sync-pill"><i class="sync-dot"></i> Cloud synced</span>
     </div>
 
     <div class="metric-grid">
-      <div class="metric-card"><span class="metric-label">Workouts</span><div class="metric-value accent">${d.workouts.length}</div><span class="metric-meta">${d.days} training day${d.days===1?'':'s'}</span></div>
+      <div class="metric-card"><span class="metric-label">Workouts</span><div class="metric-value accent">${d.workouts.length}</div><span class="metric-meta">${d.days} training day${d.days===1?'':'s'} · ${avgSets.toFixed(1)} sets / workout</span></div>
       <div class="metric-card"><span class="metric-label">Total volume</span><div class="metric-value">${Math.round(d.totalVolume).toLocaleString()} kg</div><span class="metric-meta">${Math.round(avgVol).toLocaleString()} kg average / workout</span></div>
       <div class="metric-card"><span class="metric-label">Total sets</span><div class="metric-value">${totalSets}</div><span class="metric-meta">${totalKcal.toLocaleString()} estimated kcal</span></div>
       <div class="metric-card"><span class="metric-label">Best workout</span><div class="metric-value">${Math.round(best).toLocaleString()} kg</div><span class="metric-meta">${bestExercise?`Top lift: ${bestExercise.name}`:'Keep training'}</span></div>
+    </div>
+
+    <div class="insight-grid">
+      <div class="insight-card"><span>Last 7 days</span><strong>${Math.round(weekVol).toLocaleString()} kg</strong>${trendMarkup(weekVolumeChange,'vs previous week')}</div>
+      <div class="insight-card"><span>Last 30 days</span><strong>${Math.round(monthVol).toLocaleString()} kg</strong>${trendMarkup(monthVolumeChange,'vs previous month')}</div>
+      <div class="insight-card"><span>Workout frequency</span><strong>${frequencyLast4} <small>/ 4 weeks</small></strong>${trendMarkup(frequencyChange,'vs prior 4 weeks')}</div>
+      <div class="insight-card"><span>Average calories</span><strong>${Math.round(avgKcal).toLocaleString()} <small>kcal</small></strong><span class="trend neutral">per workout</span></div>
     </div>
 
     <div class="analytics-two">
@@ -196,6 +276,18 @@ function renderProgressDashboard(rows){
         <div class="panel-heading"><div><h3>Training split</h3><p>All-time volume by body part</p></div></div>
         <div class="donut-wrap"><div class="donut" style="background:conic-gradient(${stops})" role="img" aria-label="Training split by body part"><div class="donut-center"><strong>${formatVolumeTick(totalSplit)}</strong><span>kg all-time</span></div></div><div class="legend">${legend}</div></div>
       </div>
+    </div>
+
+    <div class="analytics-panel trend-panel">
+      <div class="panel-heading"><div><p class="eyebrow">WEEKLY TREND</p><h3>Volume over the last 8 weeks</h3><p>Weekly training volume with workout frequency.</p></div><span class="history-count">${frequencyLast4} workouts · last 4 weeks</span></div>
+      <div class="trend-chart">${weeklyBars}</div>
+      <div class="trend-summary"><span><b>${Math.round(currentWeek.volume).toLocaleString()} kg</b> this week</span><span><b>${currentWeek.workouts}</b> workout${currentWeek.workouts===1?'':'s'}</span><span><b>${currentWeek.sets}</b> sets</span></div>
+    </div>
+
+    <div class="analytics-panel trend-panel">
+      <div class="panel-heading"><div><p class="eyebrow">MONTHLY TREND</p><h3>Volume over the last 6 months</h3><p>Longer-term training consistency and workload.</p></div><span class="history-count">${Math.round(currentMonth.volume).toLocaleString()} kg this month</span></div>
+      <div class="trend-chart">${monthlyBars}</div>
+      <div class="trend-summary"><span><b>${currentMonth.workouts}</b> workouts</span><span><b>${currentMonth.sets}</b> sets</span><span><b>${Math.round(currentMonth.kcal).toLocaleString()}</b> kcal</span></div>
     </div>
 
     <div class="analytics-panel">
