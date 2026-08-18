@@ -724,16 +724,20 @@ function finishExercise(){
   state.sets=[];state.draft=null;renderSets();renderLiveStats();renderLiveStats();$('finishExercise').disabled=true;$('startSet').disabled=true;$('finishSet').disabled=true;$('addSet').disabled=true;renderSummary();
 }
 async function finishWorkout(){
+  const finishBtn=$('finishWorkout');
+  if(finishBtn?.disabled)return;
+  setButtonBusy(finishBtn,true,'Saving workout…');
   if(state.setStart) finishSet();
   if(state.draft) addSet();
   if(state.exercise && state.sets.length) finishExercise();
-  if(!state.exercises.length){alert('Add at least one exercise before finishing.');return}
+  if(!state.exercises.length){alert('Add at least one exercise before finishing.');setButtonBusy(finishBtn,false);return}
   state.finished=true;renderSummary();
   $('workoutCard').classList.add('hidden');$('progressCard').classList.add('hidden');$('summaryCard').classList.remove('hidden');$('historyCard').classList.add('hidden');
   $('workoutComplete').classList.remove('hidden');$('workoutComplete').scrollIntoView({behavior:'smooth',block:'start'});
   const result=await saveWorkoutToCloud();
   if(result.ok){$('saveStatus').textContent='☁ Workout synced';await renderHistory();}
   else{$('saveStatus').textContent='Saved locally · cloud sync failed';console.error(result.error);}
+  setButtonBusy(finishBtn,false);
 }
 
 function startAnotherWorkout(){location.reload()}
@@ -1024,7 +1028,7 @@ async function setPermanentPassword(){
   if(password.length<8){showAccountError('passwordError','Use at least 8 characters.');return;}
   if(password!==confirm){showAccountError('passwordError','The passwords do not match.');return;}
 
-  $('setPasswordBtn').disabled=true;
+  setButtonBusy($('setPasswordBtn'),true,'Securing account…');
   try{
     const {data,error}=await repSupabase.auth.updateUser({password});
     if(error)throw error;
@@ -1047,7 +1051,7 @@ async function setPermanentPassword(){
   }catch(e){
     console.error('RepFuel password setup failed:',e);
     showAccountError('passwordError',explainAccountError(e));
-  }finally{$('setPasswordBtn').disabled=false;}
+  }finally{setButtonBusy($('setPasswordBtn'),false);}
 }
 
 function openSignIn(){
@@ -1069,7 +1073,7 @@ async function signInRepFuel(){
   if(!email || !email.includes('@')){showAccountError('signInError','Please enter a valid email address.');return;}
   if(!password){showAccountError('signInError','Please enter your password.');return;}
 
-  $('submitSignInBtn').disabled=true;
+  setButtonBusy($('submitSignInBtn'),true,'Signing in…');
   try{
     const {data,error}=await repSupabase.auth.signInWithPassword({email,password});
     if(error)throw error;
@@ -1101,7 +1105,7 @@ async function signInRepFuel(){
     }else{
       showAccountError('signInError',msg||'Could not sign in. Please try again.');
     }
-  }finally{$('submitSignInBtn').disabled=false;}
+  }finally{setButtonBusy($('submitSignInBtn'),false);}
 }
 
 async function signOutRepFuel(){
@@ -1117,7 +1121,52 @@ async function signOutRepFuel(){
 }
 
 
+function setButtonBusy(button, busy, busyText='Working…'){
+  if(!button)return;
+  if(busy){
+    if(!button.dataset.originalLabel) button.dataset.originalLabel=button.innerHTML;
+    button.disabled=true;
+    button.setAttribute('aria-busy','true');
+    button.innerHTML=`<span class="button-spinner" aria-hidden="true"></span>${busyText}`;
+  }else{
+    if(button.dataset.originalLabel) button.innerHTML=button.dataset.originalLabel;
+    delete button.dataset.originalLabel;
+    button.removeAttribute('aria-busy');
+    button.disabled=false;
+  }
+}
+
+function installInteractionPolish(){
+  if(window.__repFuelInteractionPolish)return;
+  window.__repFuelInteractionPolish=true;
+  document.addEventListener('pointerdown',e=>{
+    const button=e.target.closest('button,.nav-item,.chip,.exercise-card');
+    if(!button || button.disabled)return;
+    button.classList.add('ui-pressed');
+  },{passive:true});
+  document.addEventListener('pointerup',e=>{
+    const button=e.target.closest('button,.nav-item,.chip,.exercise-card');
+    if(button)button.classList.remove('ui-pressed');
+  },{passive:true});
+  document.addEventListener('pointercancel',e=>{
+    const button=e.target.closest('button,.nav-item,.chip,.exercise-card');
+    if(button)button.classList.remove('ui-pressed');
+  },{passive:true});
+  document.addEventListener('click',e=>{
+    const button=e.target.closest('button,.nav-item,.chip,.exercise-card');
+    if(!button || button.disabled || button.dataset.noRipple==='true')return;
+    const rect=button.getBoundingClientRect();
+    const ripple=document.createElement('span');
+    ripple.className='ui-ripple';
+    ripple.style.left=`${e.clientX-rect.left}px`;
+    ripple.style.top=`${e.clientY-rect.top}px`;
+    button.appendChild(ripple);
+    ripple.addEventListener('animationend',()=>ripple.remove(),{once:true});
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  installInteractionPolish();
 
   $('createAccountBtn')?.addEventListener('click', openCreateAccount);
   $('closeAccountPanel')?.addEventListener('click', hideAccountPanel);

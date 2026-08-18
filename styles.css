@@ -2116,3 +2116,138 @@ summary:focus-visible{
     padding:13px 0;
   }
 }
+
+/* ---------- Phase 2.5.2: Button & interaction polish ---------- */
+button,
+.nav-item,
+.chip,
+.exercise-card,
+.view-list,
+.number-stepper button{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+
+button,
+.nav-item,
+.chip,
+.exercise-card{
+  position:relative;
+  overflow:hidden;
+}
+
+button:not(:disabled):hover,
+.nav-item:not(:disabled):hover,
+.chip:not(:disabled):hover{
+  transition-duration:.16s;
+}
+
+button:not(:disabled):active,
+.nav-item:not(:disabled):active,
+.chip:not(:disabled):active,
+.exercise-card:not(:disabled):active{
+  transform:translateY(1px) scale(.985);
+}
+
+button:focus-visible,
+.nav-item:focus-visible,
+.chip:focus-visible,
+.exercise-card:focus-visible,
+.number-stepper button:focus-visible{
+  outline:2px solid var(--lime);
+  outline-offset:2px;
+}
+
+/* A subtle touch/click ripple; intentionally restrained for the premium UI. */
+.ui-ripple{
+  position:absolute;
+  width:18px;
+  height:18px;
+  border-radius:999px;
+  background:rgba(163,255,18,.20);
+  transform:translate(-50%,-50%) scale(0);
+  pointer-events:none;
+  animation:repFuelRipple .42s ease-out forwards;
+}
+
+@keyframes repFuelRipple{
+  to{transform:translate(-50%,-50%) scale(8);opacity:0}
+}
+
+/* Primary workout actions deserve a stronger, consistent touch target. */
+#set-buttons button,
+.set-buttons button,
+.exercise-footer button,
+#finishWorkout,
+#startAnother,
+#startSet,
+#finishSet,
+#addSet,
+#finishExercise{
+  min-height:44px;
+}
+
+#startSet:not(:disabled){
+  box-shadow:0 6px 20px rgba(163,255,18,.10);
+}
+
+#finishSet:not(:disabled){
+  box-shadow:0 6px 20px rgba(163,255,18,.08);
+}
+
+#addSet:not(:disabled){
+  border-color:#415139;
+}
+
+/* Active controls read as selected, not merely hovered. */
+.chip.active,
+.progress-filters button.active,
+.time-filters button.active{
+  box-shadow:0 0 0 1px rgba(163,255,18,.12),0 4px 14px rgba(163,255,18,.05);
+}
+
+.exercise-card.active{
+  box-shadow:0 0 0 1px rgba(163,255,18,.20),0 8px 24px rgba(0,0,0,.16);
+}
+
+/* Prevent accidental text selection during rapid workout button taps. */
+.set-buttons,
+.exercise-footer,
+.number-stepper,
+.quick-stats{
+  user-select:none;
+}
+
+@media(max-width:600px){
+  button,
+  .nav-item,
+  .chip,
+  .view-list{
+    min-height:42px;
+  }
+  .set-buttons button,
+  .exercise-footer button,
+  #finishWorkout,
+  #startAnother,
+  #startSet,
+  #finishSet,
+  #addSet,
+  #finishExercise{
+    min-height:46px;
+  }
+}
+
+.button-spinner{
+  display:inline-block;
+  width:13px;
+  height:13px;
+  margin-right:7px;
+  vertical-align:-2px;
+  border:2px solid currentColor;
+  border-right-color:transparent;
+  border-radius:50%;
+  animation:repFuelSpin .65s linear infinite;
+}
+@keyframes repFuelSpin{to{transform:rotate(360deg)}}
+
+button[aria-busy="true"]{cursor:wait;pointer-events:none}
