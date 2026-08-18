@@ -386,43 +386,8 @@ async function renderHistory(){
   if($('progressBest')) $('progressBest').textContent=Math.round(bestVolume).toLocaleString()+' kg';
 }
 
-
-const EXERCISE_IMAGE_MAP={
-  barbell_curl:'assets/exercises/barbell_curl.png',
-  barbell_bench_press:'assets/exercises/barbell_press.png',
-  barbell_row:'assets/exercises/barbell_row.png',
-  barbell_squat:'assets/exercises/barbell_squat.png',
-  cable_chest_fly:'assets/exercises/cabel_chest_fly.png',
-  calf_raise:'assets/exercises/calf_raises.png',
-  dumbbell_lateral_raise:'assets/exercises/dumbell_lateral_raise.png',
-  dumbbell_shoulder_press:'assets/exercises/dumbell_shoulder_press.png',
-  dumbbell_bench_press:'assets/exercises/dumbel_bench_press.png',
-  dumbbell_pullover:'assets/exercises/dumbel_pullover.png',
-  face_pull:'assets/exercises/face_pull.png',
-  front_dumbbell_raise:'assets/exercises/front_dumbel_raise.png',
-  hammer_curl:'assets/exercises/hammer_curl.png',
-  hip_thrust:'assets/exercises/hip_thrust.png',
-  incline_barbell_bench_press:'assets/exercises/inclined_barwell_bench_press.png',
-  incline_dumbbell_press:'assets/exercises/inclined_dumbel_press.png',
-  lat_pulldown:'assets/exercises/latt_pull_down.png',
-  leg_curl:'assets/exercises/leg_curl.png',
-  leg_extension:'assets/exercises/leg_extention.png',
-  leg_press:'assets/exercises/leg_press.png',
-  overhead_triceps_extension:'assets/exercises/overhead_tricep_extention.png',
-  pec_deck_machine_fly:'assets/exercises/pecdeck_fly.png',
-  preacher_curl:'assets/exercises/preacher_curl.png',
-  reverse_pec_deck:'assets/exercises/reverse_pec_deck.png',
-  seated_cable_row:'assets/exercises/seated_cabel_row.png',
-  skull_crushers:'assets/exercises/skull_crusher.png',
-  straight_arm_pulldown:'assets/exercises/straight_arm_pulldown.png',
-  triceps_pushdown:'assets/exercises/tricep_pushdown.png',
-  t_bar_row:'assets/exercises/t_bar.png'
-};
-
-function findExerciseImage(e){
-  const key=(e?.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
-  return (typeof EXERCISE_IMAGE_MAP==='object' && EXERCISE_IMAGE_MAP[key]) || null;
-}
+const EXERCISE_IMAGE_MAP = {"barbell_bench_press":"assets/exercises/barbell_press.png","incline_barbell_bench_press":"assets/exercises/inclined_barwell_bench_press.png","dumbbell_bench_press":"assets/exercises/dumbel_bench_press.png","incline_dumbbell_press":"assets/exercises/inclined_dumbel_press.png","pec_deck_machine_fly":"assets/exercises/pecdeck_fly.png","cable_chest_fly":"assets/exercises/cabel_chest_fly.png","lat_pulldown":"assets/exercises/latt_pull_down.png","barbell_row":"assets/exercises/barbell_row.png","seated_cable_row":"assets/exercises/seated_cabel_row.png","t_bar_row":"assets/exercises/t_bar.png","straight_arm_pulldown":"assets/exercises/straight_arm_pulldown.png","dumbbell_pullover":"assets/exercises/dumbel_pullover.png","barbell_squat":"assets/exercises/barbell_squat.png","leg_press":"assets/exercises/leg_press.png","leg_extension":"assets/exercises/leg_extention.png","leg_curl":"assets/exercises/leg_curl.png","hip_thrust":"assets/exercises/hip_thrust.png","calf_raise":"assets/exercises/calf_raises.png","barbell_curl":"assets/exercises/barbell_curl.png","hammer_curl":"assets/exercises/hammer_curl.png","preacher_curl":"assets/exercises/preacher_curl.png","triceps_pushdown":"assets/exercises/tricep_pushdown.png","overhead_triceps_extension":"assets/exercises/overhead_tricep_extention.png","skull_crushers":"assets/exercises/skull_crusher.png","dumbbell_shoulder_press":"assets/exercises/dumbell_shoulder_press.png","dumbbell_lateral_raise":"assets/exercises/dumbell_lateral_raise.png","front_dumbbell_raise":"assets/exercises/front_dumbel_raise.png","reverse_pec_deck":"assets/exercises/reverse_pec_deck.png","face_pull":"assets/exercises/face_pull.png"};
+function findExerciseImage(e){const key=(e.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');return EXERCISE_IMAGE_MAP[key]||null;}
 function exerciseVisual(e){
   const image=findExerciseImage(e);
   if(image){
