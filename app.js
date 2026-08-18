@@ -677,6 +677,10 @@ async function saveProfileToCloud(p){
   const row={user_id:user.id,age:p.age,sex:p.sex,height_cm:p.height,weight_kg:p.weight,body_fat_percent:p.bodyFat,training_level:p.level,consent:p.consent,updated_at:new Date().toISOString()};
   const {error}=await repSupabase.from('repfuel_profiles').upsert(row,{onConflict:'user_id'});
   if(error){console.error('Cloud profile save failed:',error);return {ok:false,error:error.message};}
+  if(p.name && p.name.trim()){
+    const {error:metaError}=await repSupabase.auth.updateUser({data:{display_name:p.name.trim()}});
+    if(metaError) console.warn('RepFuel display name sync failed:',metaError);
+  }
   return {ok:true};
 }
 
@@ -687,7 +691,7 @@ async function loadProfileFromCloud(){
   const {data,error}=await repSupabase.from('repfuel_profiles').select('*').eq('user_id',user.id).maybeSingle();
   if(error){console.error('Cloud profile fetch failed:',error);return null;}
   if(!data)return null;
-  const p={age:data.age||0,sex:data.sex||'male',height:data.height_cm||0,weight:data.weight_kg||0,bodyFat:data.body_fat_percent??null,consent:!!data.consent,level:data.training_level||'beginner'};
+  const p={age:data.age||0,sex:data.sex||'male',height:data.height_cm||0,weight:data.weight_kg||0,bodyFat:data.body_fat_percent??null,consent:!!data.consent,level:data.training_level||'beginner',name:user.user_metadata?.display_name||''};
   localStorage.setItem('repfuel_profile',JSON.stringify(p));
   localStorage.setItem('repfuel_level',p.level);
   return p;
@@ -699,6 +703,18 @@ async function deleteCloudHistory(){
   if(!user)return;
   const {error}=await repSupabase.from('repfuel_workouts').delete().eq('user_id',user.id);
   if(error)throw error;
+}
+
+async function deleteCloudProfile(){
+  if(!window.repSupabase?.auth)return;
+  const {data:{user}}=await repSupabase.auth.getUser();
+  if(!user)return;
+  const {error}=await repSupabase.from('repfuel_profiles').delete().eq('user_id',user.id);
+  if(error)throw error;
+}
+
+function clearLocalRepFuelData(){
+  ['repfuel_profile','repfuel_level','repfuel_history','repfuel_session'].forEach(k=>localStorage.removeItem(k));
 }
 
 function finishExercise(){
@@ -797,8 +813,13 @@ async function updateAccountPanel(){
   if(error||!user)return;
 
   const permanent=!user.is_anonymous;
+  const local=JSON.parse(localStorage.getItem('repfuel_profile')||'null')||{};
+  const displayName=user.user_metadata?.display_name||local.name||'';
   $('guestAccountActions')?.classList.toggle('hidden',permanent);
   $('permanentAccountActions')?.classList.toggle('hidden',!permanent);
+  $('accountProfileSummary')?.classList.remove('hidden');
+  if($('accountProfileName')) $('accountProfileName').textContent=displayName||'Profile not completed';
+  if($('accountProfileMeta')) $('accountProfileMeta').textContent=[local.height&&`${local.height} cm`,local.weight&&`${local.weight} kg`,local.level&&String(local.level).replace(/^./,c=>c.toUpperCase())].filter(Boolean).join(' · ')||'Add your profile details';
 
   if(permanent){
     $('accountStatusTitle').textContent='Permanent account';
@@ -809,8 +830,70 @@ async function updateAccountPanel(){
   }else{
     $('accountStatusTitle').textContent='Guest account';
     $('accountStatusText').textContent='Your workouts are cloud-synced to this temporary guest session. Create an account to keep it recoverable across devices.';
+    $('accountCloudStatus').textContent='✓ Guest cloud session';
     $('saveStatus').textContent='☁ Guest synced';
   }
+}
+
+
+function openProfileEditor(){
+  const p=JSON.parse(localStorage.getItem('repfuel_profile')||'null')||profile();
+  const userPromise=getCurrentAuthUser();
+  userPromise.then(({data:{user}})=>{
+    if($('profileEditName')) $('profileEditName').value=user?.user_metadata?.display_name||p.name||'';
+  });
+  if($('profileEditAge')) $('profileEditAge').value=p.age||'';
+  if($('profileEditSex')) $('profileEditSex').value=p.sex||'male';
+  if($('profileEditHeight')) $('profileEditHeight').value=p.height||'';
+  if($('profileEditWeight')) $('profileEditWeight').value=p.weight||'';
+  if($('profileEditBodyFat')) $('profileEditBodyFat').value=p.bodyFat??'';
+  if($('profileEditLevel')) $('profileEditLevel').value=p.level||'beginner';
+  $('profileEditError')?.classList.add('hidden');
+  $('profileEditModal')?.classList.remove('hidden');
+  setTimeout(()=>$('profileEditName')?.focus(),50);
+}
+function closeProfileEditor(){$('profileEditModal')?.classList.add('hidden');}
+async function saveEditedProfile(){
+  const p={
+    name:$('profileEditName')?.value.trim()||'',
+    age:+($('profileEditAge')?.value||0),
+    sex:$('profileEditSex')?.value||'male',
+    height:+($('profileEditHeight')?.value||0),
+    weight:+($('profileEditWeight')?.value||0),
+    bodyFat:$('profileEditBodyFat')?.value===''?null:+$('profileEditBodyFat').value,
+    level:$('profileEditLevel')?.value||'beginner',
+    consent:true
+  };
+  if(!p.age||!p.height||!p.weight){showAccountError('profileEditError','Please enter age, height and weight.');return;}
+  $('saveEditedProfileBtn').disabled=true;
+  try{
+    localStorage.setItem('repfuel_profile',JSON.stringify(p));
+    localStorage.setItem('repfuel_level',p.level);
+    const result=await saveProfileToCloud(p);
+    if(!result.ok && window.repSupabase?.auth) throw new Error(result.error||'Could not sync profile.');
+    applyProfileToForm(p);
+    closeProfileEditor();
+    await updateAccountPanel();
+    $('saveStatus').textContent=result.ok?'☁ Profile synced':'Local profile';
+  }catch(e){showAccountError('profileEditError',e.message||'Could not save profile.');}
+  finally{$('saveEditedProfileBtn').disabled=false;}
+}
+
+async function clearLocalDataWithConfirmation(){
+  const ok=confirm('Clear local RepFuel data on this device?\n\nThis will remove locally cached profile/history data. It will NOT delete your cloud account or cloud workouts. Cloud data may reappear after the app syncs.');
+  if(!ok)return;
+  clearLocalRepFuelData();
+  location.reload();
+}
+async function clearCloudDataWithConfirmation(){
+  const ok=confirm('Delete all cloud data for this RepFuel account?\n\nThis permanently deletes cloud workout history and your saved cloud profile. Your account login will remain active. This cannot be undone.');
+  if(!ok)return;
+  try{
+    await deleteCloudHistory();
+    await deleteCloudProfile();
+    clearLocalRepFuelData();
+    location.reload();
+  }catch(e){alert('Could not clear cloud data: '+(e.message||e));}
 }
 
 function openCreateAccount(){
@@ -1044,7 +1127,15 @@ document.addEventListener('DOMContentLoaded', () => {
   $('resendVerificationBtn')?.addEventListener('click', resendAccountVerification);
   $('finishVerificationBtn')?.addEventListener('click', checkVerificationAndShowPassword);
   $('setPasswordBtn')?.addEventListener('click', setPermanentPassword);
-  $('signOutBtn')?.addEventListener('click', signOutRepFuel);
+  $('signOutBtn')?.addEventListener('click', async()=>{
+    if(confirm('Sign out of this RepFuel account on this device? Your cloud data will remain safe and you can sign in again with the same email and password.')) await signOutRepFuel();
+  });
+  $('editAccountProfileBtn')?.addEventListener('click', openProfileEditor);
+  $('editGuestProfileBtn')?.addEventListener('click', openProfileEditor);
+  $('closeProfileEditModal')?.addEventListener('click', closeProfileEditor);
+  $('saveEditedProfileBtn')?.addEventListener('click', saveEditedProfile);
+  $('clearLocalDataBtn')?.addEventListener('click', clearLocalDataWithConfirmation);
+  $('clearCloudDataBtn')?.addEventListener('click', clearCloudDataWithConfirmation);
   $('signInBtn')?.addEventListener('click', openSignIn);
   $('closeSignInModal')?.addEventListener('click', closeSignIn);
   $('submitSignInBtn')?.addEventListener('click', signInRepFuel);
@@ -1061,6 +1152,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('signInModal')?.addEventListener('click', (e) => {
     if (e.target === $('signInModal')) closeSignIn();
+  });
+
+  $('profileEditModal')?.addEventListener('click', (e) => {
+    if (e.target === $('profileEditModal')) closeProfileEditor();
   });
 
 });
