@@ -386,7 +386,43 @@ async function renderHistory(){
   if($('progressBest')) $('progressBest').textContent=Math.round(bestVolume).toLocaleString()+' kg';
 }
 
-function findExerciseImage(e){const key=(e.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');return EXERCISE_IMAGE_MAP[key]||null;}
+
+const EXERCISE_IMAGE_MAP={
+  barbell_curl:'assets/exercises/barbell_curl.png',
+  barbell_bench_press:'assets/exercises/barbell_press.png',
+  barbell_row:'assets/exercises/barbell_row.png',
+  barbell_squat:'assets/exercises/barbell_squat.png',
+  cable_chest_fly:'assets/exercises/cabel_chest_fly.png',
+  calf_raise:'assets/exercises/calf_raises.png',
+  dumbbell_lateral_raise:'assets/exercises/dumbell_lateral_raise.png',
+  dumbbell_shoulder_press:'assets/exercises/dumbell_shoulder_press.png',
+  dumbbell_bench_press:'assets/exercises/dumbel_bench_press.png',
+  dumbbell_pullover:'assets/exercises/dumbel_pullover.png',
+  face_pull:'assets/exercises/face_pull.png',
+  front_dumbbell_raise:'assets/exercises/front_dumbel_raise.png',
+  hammer_curl:'assets/exercises/hammer_curl.png',
+  hip_thrust:'assets/exercises/hip_thrust.png',
+  incline_barbell_bench_press:'assets/exercises/inclined_barwell_bench_press.png',
+  incline_dumbbell_press:'assets/exercises/inclined_dumbel_press.png',
+  lat_pulldown:'assets/exercises/latt_pull_down.png',
+  leg_curl:'assets/exercises/leg_curl.png',
+  leg_extension:'assets/exercises/leg_extention.png',
+  leg_press:'assets/exercises/leg_press.png',
+  overhead_triceps_extension:'assets/exercises/overhead_tricep_extention.png',
+  pec_deck_machine_fly:'assets/exercises/pecdeck_fly.png',
+  preacher_curl:'assets/exercises/preacher_curl.png',
+  reverse_pec_deck:'assets/exercises/reverse_pec_deck.png',
+  seated_cable_row:'assets/exercises/seated_cabel_row.png',
+  skull_crushers:'assets/exercises/skull_crusher.png',
+  straight_arm_pulldown:'assets/exercises/straight_arm_pulldown.png',
+  triceps_pushdown:'assets/exercises/tricep_pushdown.png',
+  t_bar_row:'assets/exercises/t_bar.png'
+};
+
+function findExerciseImage(e){
+  const key=(e?.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  return (typeof EXERCISE_IMAGE_MAP==='object' && EXERCISE_IMAGE_MAP[key]) || null;
+}
 function exerciseVisual(e){
   const image=findExerciseImage(e);
   if(image){
@@ -445,20 +481,8 @@ function renderExercises(){
   const gallery=$('exerciseGallery');
   const select=$('exerciseSelect');
   if(!gallery||!select) return;
-
-  // Keep the category selection and exercise list in sync.
-  // On some mobile/tablet browsers the visual chip state can survive a
-  // re-render while the JS array is temporarily empty. Recover the
-  // selected categories from the active chips before building the list.
-  let selected=Array.isArray(state.selectedParts)?state.selectedParts.filter(p=>EXERCISES[p]):[];
-  if(!selected.length){
-    selected=[...document.querySelectorAll('#bodyParts .chip.active')]
-      .map(btn=>btn.dataset.part)
-      .filter(p=>EXERCISES[p]);
-    if(selected.length) state.selectedParts=selected;
-  }
-
-  state.exerciseOptions=selected.flatMap(p=>(EXERCISES[p]||[]).map(e=>({bodyPart:p,name:e[0],equipment:e[1],family:e[2]})));
+  state.selectedParts=Array.isArray(state.selectedParts)?state.selectedParts:[];
+  state.exerciseOptions=state.selectedParts.filter(p=>EXERCISES[p]).flatMap(p=>(EXERCISES[p]||[]).map(e=>({bodyPart:p,name:e[0],equipment:e[1],family:e[2]})));
   $('exerciseSelect').innerHTML=state.exerciseOptions.length
     ? state.exerciseOptions.map((e,i)=>`<option value="${i}">${e.bodyPart} · ${e.name}</option>`).join('')
     : '<option value="">Choose a category first</option>';
@@ -689,10 +713,6 @@ async function saveProfileToCloud(p){
   const row={user_id:user.id,age:p.age,sex:p.sex,height_cm:p.height,weight_kg:p.weight,body_fat_percent:p.bodyFat,training_level:p.level,consent:p.consent,updated_at:new Date().toISOString()};
   const {error}=await repSupabase.from('repfuel_profiles').upsert(row,{onConflict:'user_id'});
   if(error){console.error('Cloud profile save failed:',error);return {ok:false,error:error.message};}
-  if(p.name && p.name.trim()){
-    const {error:metaError}=await repSupabase.auth.updateUser({data:{display_name:p.name.trim()}});
-    if(metaError) console.warn('RepFuel display name sync failed:',metaError);
-  }
   return {ok:true};
 }
 
@@ -703,7 +723,7 @@ async function loadProfileFromCloud(){
   const {data,error}=await repSupabase.from('repfuel_profiles').select('*').eq('user_id',user.id).maybeSingle();
   if(error){console.error('Cloud profile fetch failed:',error);return null;}
   if(!data)return null;
-  const p={age:data.age||0,sex:data.sex||'male',height:data.height_cm||0,weight:data.weight_kg||0,bodyFat:data.body_fat_percent??null,consent:!!data.consent,level:data.training_level||'beginner',name:user.user_metadata?.display_name||''};
+  const p={age:data.age||0,sex:data.sex||'male',height:data.height_cm||0,weight:data.weight_kg||0,bodyFat:data.body_fat_percent??null,consent:!!data.consent,level:data.training_level||'beginner'};
   localStorage.setItem('repfuel_profile',JSON.stringify(p));
   localStorage.setItem('repfuel_level',p.level);
   return p;
@@ -717,18 +737,6 @@ async function deleteCloudHistory(){
   if(error)throw error;
 }
 
-async function deleteCloudProfile(){
-  if(!window.repSupabase?.auth)return;
-  const {data:{user}}=await repSupabase.auth.getUser();
-  if(!user)return;
-  const {error}=await repSupabase.from('repfuel_profiles').delete().eq('user_id',user.id);
-  if(error)throw error;
-}
-
-function clearLocalRepFuelData(){
-  ['repfuel_profile','repfuel_level','repfuel_history','repfuel_session'].forEach(k=>localStorage.removeItem(k));
-}
-
 function finishExercise(){
   if(!state.exercise||!state.sets.length)return;
   const r=estimate(state.exercise,state.sets);
@@ -736,20 +744,16 @@ function finishExercise(){
   state.sets=[];state.draft=null;renderSets();renderLiveStats();renderLiveStats();$('finishExercise').disabled=true;$('startSet').disabled=true;$('finishSet').disabled=true;$('addSet').disabled=true;renderSummary();
 }
 async function finishWorkout(){
-  const finishBtn=$('finishWorkout');
-  if(finishBtn?.disabled)return;
-  setButtonBusy(finishBtn,true,'Saving workout…');
   if(state.setStart) finishSet();
   if(state.draft) addSet();
   if(state.exercise && state.sets.length) finishExercise();
-  if(!state.exercises.length){alert('Add at least one exercise before finishing.');setButtonBusy(finishBtn,false);return}
+  if(!state.exercises.length){alert('Add at least one exercise before finishing.');return}
   state.finished=true;renderSummary();
   $('workoutCard').classList.add('hidden');$('progressCard').classList.add('hidden');$('summaryCard').classList.remove('hidden');$('historyCard').classList.add('hidden');
   $('workoutComplete').classList.remove('hidden');$('workoutComplete').scrollIntoView({behavior:'smooth',block:'start'});
   const result=await saveWorkoutToCloud();
   if(result.ok){$('saveStatus').textContent='☁ Workout synced';await renderHistory();}
   else{$('saveStatus').textContent='Saved locally · cloud sync failed';console.error(result.error);}
-  setButtonBusy(finishBtn,false);
 }
 
 function startAnotherWorkout(){location.reload()}
@@ -820,7 +824,6 @@ function showAccountPanel(){
 function hideAccountPanel(){
   $('accountPanel')?.classList.add('hidden');
   $('accountModal')?.classList.add('hidden');
-  $('signInModal')?.classList.add('hidden');
 }
 
 async function updateAccountPanel(){
@@ -829,87 +832,19 @@ async function updateAccountPanel(){
   if(error||!user)return;
 
   const permanent=!user.is_anonymous;
-  const local=JSON.parse(localStorage.getItem('repfuel_profile')||'null')||{};
-  const displayName=user.user_metadata?.display_name||local.name||'';
   $('guestAccountActions')?.classList.toggle('hidden',permanent);
   $('permanentAccountActions')?.classList.toggle('hidden',!permanent);
-  $('accountProfileSummary')?.classList.remove('hidden');
-  if($('accountProfileName')) $('accountProfileName').textContent=displayName||'Profile not completed';
-  if($('accountProfileMeta')) $('accountProfileMeta').textContent=[local.height&&`${local.height} cm`,local.weight&&`${local.weight} kg`,local.level&&String(local.level).replace(/^./,c=>c.toUpperCase())].filter(Boolean).join(' · ')||'Add your profile details';
 
   if(permanent){
     $('accountStatusTitle').textContent='Permanent account';
-    $('accountStatusText').textContent='Signed in. This account can be used on multiple phones, tablets, and computers.';
+    $('accountStatusText').textContent='Your RepFuel account can be recovered on another device using your email and password.';
     $('accountEmail').textContent=user.email||'—';
-    $('accountCloudStatus').textContent='✓ Connected';
     $('saveStatus').textContent='☁ Account synced';
   }else{
     $('accountStatusTitle').textContent='Guest account';
-    $('accountStatusText').textContent='Your workouts are cloud-synced to this temporary guest session. Create an account to keep it recoverable across devices.';
-    $('accountCloudStatus').textContent='✓ Guest cloud session';
+    $('accountStatusText').textContent='Your workouts are cloud-synced, but this guest identity cannot be recovered after sign-out or on another device.';
     $('saveStatus').textContent='☁ Guest synced';
   }
-}
-
-
-function openProfileEditor(){
-  const p=JSON.parse(localStorage.getItem('repfuel_profile')||'null')||profile();
-  const userPromise=getCurrentAuthUser();
-  userPromise.then(({data:{user}})=>{
-    if($('profileEditName')) $('profileEditName').value=user?.user_metadata?.display_name||p.name||'';
-  });
-  if($('profileEditAge')) $('profileEditAge').value=p.age||'';
-  if($('profileEditSex')) $('profileEditSex').value=p.sex||'male';
-  if($('profileEditHeight')) $('profileEditHeight').value=p.height||'';
-  if($('profileEditWeight')) $('profileEditWeight').value=p.weight||'';
-  if($('profileEditBodyFat')) $('profileEditBodyFat').value=p.bodyFat??'';
-  if($('profileEditLevel')) $('profileEditLevel').value=p.level||'beginner';
-  $('profileEditError')?.classList.add('hidden');
-  $('profileEditModal')?.classList.remove('hidden');
-  setTimeout(()=>$('profileEditName')?.focus(),50);
-}
-function closeProfileEditor(){$('profileEditModal')?.classList.add('hidden');}
-async function saveEditedProfile(){
-  const p={
-    name:$('profileEditName')?.value.trim()||'',
-    age:+($('profileEditAge')?.value||0),
-    sex:$('profileEditSex')?.value||'male',
-    height:+($('profileEditHeight')?.value||0),
-    weight:+($('profileEditWeight')?.value||0),
-    bodyFat:$('profileEditBodyFat')?.value===''?null:+$('profileEditBodyFat').value,
-    level:$('profileEditLevel')?.value||'beginner',
-    consent:true
-  };
-  if(!p.age||!p.height||!p.weight){showAccountError('profileEditError','Please enter age, height and weight.');return;}
-  $('saveEditedProfileBtn').disabled=true;
-  try{
-    localStorage.setItem('repfuel_profile',JSON.stringify(p));
-    localStorage.setItem('repfuel_level',p.level);
-    const result=await saveProfileToCloud(p);
-    if(!result.ok && window.repSupabase?.auth) throw new Error(result.error||'Could not sync profile.');
-    applyProfileToForm(p);
-    closeProfileEditor();
-    await updateAccountPanel();
-    $('saveStatus').textContent=result.ok?'☁ Profile synced':'Local profile';
-  }catch(e){showAccountError('profileEditError',e.message||'Could not save profile.');}
-  finally{$('saveEditedProfileBtn').disabled=false;}
-}
-
-async function clearLocalDataWithConfirmation(){
-  const ok=confirm('Clear local RepFuel data on this device?\n\nThis will remove locally cached profile/history data. It will NOT delete your cloud account or cloud workouts. Cloud data may reappear after the app syncs.');
-  if(!ok)return;
-  clearLocalRepFuelData();
-  location.reload();
-}
-async function clearCloudDataWithConfirmation(){
-  const ok=confirm('Delete all cloud data for this RepFuel account?\n\nThis permanently deletes cloud workout history and your saved cloud profile. Your account login will remain active. This cannot be undone.');
-  if(!ok)return;
-  try{
-    await deleteCloudHistory();
-    await deleteCloudProfile();
-    clearLocalRepFuelData();
-    location.reload();
-  }catch(e){alert('Could not clear cloud data: '+(e.message||e));}
 }
 
 function openCreateAccount(){
@@ -1040,7 +975,7 @@ async function setPermanentPassword(){
   if(password.length<8){showAccountError('passwordError','Use at least 8 characters.');return;}
   if(password!==confirm){showAccountError('passwordError','The passwords do not match.');return;}
 
-  setButtonBusy($('setPasswordBtn'),true,'Securing account…');
+  $('setPasswordBtn').disabled=true;
   try{
     const {data,error}=await repSupabase.auth.updateUser({password});
     if(error)throw error;
@@ -1063,61 +998,7 @@ async function setPermanentPassword(){
   }catch(e){
     console.error('RepFuel password setup failed:',e);
     showAccountError('passwordError',explainAccountError(e));
-  }finally{setButtonBusy($('setPasswordBtn'),false);}
-}
-
-function openSignIn(){
-  $('accountPanel')?.classList.add('hidden');
-  $('signInModal')?.classList.remove('hidden');
-  $('signInError')?.classList.add('hidden');
-  $('signInPassword').value='';
-  $('signInEmail').focus();
-}
-
-function closeSignIn(){
-  $('signInModal')?.classList.add('hidden');
-}
-
-async function signInRepFuel(){
-  if(!window.repSupabase?.auth){showAccountError('signInError','Cloud account services are not available right now.');return;}
-  const email=$('signInEmail').value.trim();
-  const password=$('signInPassword').value;
-  if(!email || !email.includes('@')){showAccountError('signInError','Please enter a valid email address.');return;}
-  if(!password){showAccountError('signInError','Please enter your password.');return;}
-
-  setButtonBusy($('submitSignInBtn'),true,'Signing in…');
-  try{
-    const {data,error}=await repSupabase.auth.signInWithPassword({email,password});
-    if(error)throw error;
-    if(!data?.user || data.user.is_anonymous){throw new Error('The sign-in did not return a permanent RepFuel account.');}
-
-    // Pull the account-owned profile into this device so the same account
-    // behaves consistently across phones, tablets, and desktop browsers.
-    const cloudProfile=await loadProfileFromCloud();
-    $('signInModal').classList.add('hidden');
-    $('accountPanel').classList.remove('hidden');
-    await updateAccountPanel();
-    if(cloudProfile){
-      enterWorkout(cloudProfile);
-    }else{
-      const local=JSON.parse(localStorage.getItem('repfuel_profile')||'null');
-      if(local) enterWorkout(local);
-      else showAccountPanel();
-    }
-    await renderHistory();
-    $('saveStatus').textContent='☁ Account synced';
-  }catch(e){
-    console.error('RepFuel sign-in failed:',e);
-    const msg=String(e?.message||e||'');
-    const lower=msg.toLowerCase();
-    if(lower.includes('invalid login credentials')){
-      showAccountError('signInError','Email or password is incorrect. Check both and try again.');
-    }else if(lower.includes('email not confirmed')){
-      showAccountError('signInError','Please verify your email before signing in.');
-    }else{
-      showAccountError('signInError',msg||'Could not sign in. Please try again.');
-    }
-  }finally{setButtonBusy($('submitSignInBtn'),false);}
+  }finally{$('setPasswordBtn').disabled=false;}
 }
 
 async function signOutRepFuel(){
@@ -1133,52 +1014,7 @@ async function signOutRepFuel(){
 }
 
 
-function setButtonBusy(button, busy, busyText='Working…'){
-  if(!button)return;
-  if(busy){
-    if(!button.dataset.originalLabel) button.dataset.originalLabel=button.innerHTML;
-    button.disabled=true;
-    button.setAttribute('aria-busy','true');
-    button.innerHTML=`<span class="button-spinner" aria-hidden="true"></span>${busyText}`;
-  }else{
-    if(button.dataset.originalLabel) button.innerHTML=button.dataset.originalLabel;
-    delete button.dataset.originalLabel;
-    button.removeAttribute('aria-busy');
-    button.disabled=false;
-  }
-}
-
-function installInteractionPolish(){
-  if(window.__repFuelInteractionPolish)return;
-  window.__repFuelInteractionPolish=true;
-  document.addEventListener('pointerdown',e=>{
-    const button=e.target.closest('button,.nav-item,.chip,.exercise-card');
-    if(!button || button.disabled)return;
-    button.classList.add('ui-pressed');
-  },{passive:true});
-  document.addEventListener('pointerup',e=>{
-    const button=e.target.closest('button,.nav-item,.chip,.exercise-card');
-    if(button)button.classList.remove('ui-pressed');
-  },{passive:true});
-  document.addEventListener('pointercancel',e=>{
-    const button=e.target.closest('button,.nav-item,.chip,.exercise-card');
-    if(button)button.classList.remove('ui-pressed');
-  },{passive:true});
-  document.addEventListener('click',e=>{
-    const button=e.target.closest('button,.nav-item,.chip,.exercise-card');
-    if(!button || button.disabled || button.dataset.noRipple==='true')return;
-    const rect=button.getBoundingClientRect();
-    const ripple=document.createElement('span');
-    ripple.className='ui-ripple';
-    ripple.style.left=`${e.clientX-rect.left}px`;
-    ripple.style.top=`${e.clientY-rect.top}px`;
-    button.appendChild(ripple);
-    ripple.addEventListener('animationend',()=>ripple.remove(),{once:true});
-  });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-  installInteractionPolish();
 
   $('createAccountBtn')?.addEventListener('click', openCreateAccount);
   $('closeAccountPanel')?.addEventListener('click', hideAccountPanel);
@@ -1188,20 +1024,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('resendVerificationBtn')?.addEventListener('click', resendAccountVerification);
   $('finishVerificationBtn')?.addEventListener('click', checkVerificationAndShowPassword);
   $('setPasswordBtn')?.addEventListener('click', setPermanentPassword);
-  $('signOutBtn')?.addEventListener('click', async()=>{
-    if(confirm('Sign out of this RepFuel account on this device? Your cloud data will remain safe and you can sign in again with the same email and password.')) await signOutRepFuel();
-  });
-  $('editAccountProfileBtn')?.addEventListener('click', openProfileEditor);
-  $('editGuestProfileBtn')?.addEventListener('click', openProfileEditor);
-  $('closeProfileEditModal')?.addEventListener('click', closeProfileEditor);
-  $('saveEditedProfileBtn')?.addEventListener('click', saveEditedProfile);
-  $('clearLocalDataBtn')?.addEventListener('click', clearLocalDataWithConfirmation);
-  $('clearCloudDataBtn')?.addEventListener('click', clearCloudDataWithConfirmation);
-  $('signInBtn')?.addEventListener('click', openSignIn);
-  $('closeSignInModal')?.addEventListener('click', closeSignIn);
-  $('submitSignInBtn')?.addEventListener('click', signInRepFuel);
-  $('openCreateFromSignIn')?.addEventListener('click',()=>{closeSignIn();openCreateAccount();});
-  $('signInPassword')?.addEventListener('keydown',e=>{if(e.key==='Enter')signInRepFuel();});
+  $('signOutBtn')?.addEventListener('click', signOutRepFuel);
 
   $('accountPanel')?.addEventListener('click', (e) => {
     if (e.target === $('accountPanel')) hideAccountPanel();
@@ -1209,14 +1032,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('accountModal')?.addEventListener('click', (e) => {
     if (e.target === $('accountModal')) closeCreateAccount();
-  });
-
-  $('signInModal')?.addEventListener('click', (e) => {
-    if (e.target === $('signInModal')) closeSignIn();
-  });
-
-  $('profileEditModal')?.addEventListener('click', (e) => {
-    if (e.target === $('profileEditModal')) closeProfileEditor();
   });
 
 });
