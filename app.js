@@ -756,22 +756,58 @@ async function signOutRepFuel(){
 }
 
 
-$('createAccountBtn').onclick=openCreateAccount;
-$('closeAccountPanel').onclick=hideAccountPanel;
-$('closeAccountModal').onclick=closeCreateAccount;
-$('sendVerificationBtn').onclick=sendAccountVerification;
-$('resendVerificationBtn').onclick=resendAccountVerification;
-$('finishVerificationBtn').onclick=checkVerificationAndShowPassword;
-$('setPasswordBtn').onclick=setPermanentPassword;
-$('signOutBtn').onclick=signOutRepFuel;
-$('accountPanel').addEventListener('click',e=>{if(e.target===$('accountPanel'))hideAccountPanel()});
-$('accountModal').addEventListener('click',e=>{if(e.target===$('accountModal'))closeCreateAccount()});
+$('createAccountBtn')?.addEventListener('click',openCreateAccount);
+$('closeAccountPanel')?.addEventListener('click',hideAccountPanel);
+$('closeAccountModal')?.addEventListener('click',closeCreateAccount);
+$('sendVerificationBtn')?.addEventListener('click',sendAccountVerification);
+$('resendVerificationBtn')?.addEventListener('click',resendAccountVerification);
+$('finishVerificationBtn')?.addEventListener('click',checkVerificationAndShowPassword);
+$('setPasswordBtn')?.addEventListener('click',setPermanentPassword);
+$('signOutBtn')?.addEventListener('click',signOutRepFuel);
 
-$('exerciseSelect').onchange=selectExercise;
-$('startSet').onclick=startSet;$('finishSet').onclick=finishSet;$('addSet').onclick=addSet;$('finishExercise').onclick=finishExercise;
-$('finishWorkout').onclick=finishWorkout;$('startAnother').onclick=startAnotherWorkout;
-$('clearHistory').onclick=async()=>{if(!confirm('Clear all cloud workout history for this account?'))return;try{await deleteCloudHistory();localStorage.removeItem('repfuel_history');await renderHistory();$('saveStatus').textContent='☁ Cloud history cleared'}catch(e){alert('Could not clear cloud history: '+e.message)}};
-$('editProfile').onclick=()=>{['workoutCard','progressCard','summaryCard','historyCard'].forEach(id=>$(id)?.classList.add('hidden'));$('profileCard').classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.section==='workout'));window.scrollTo({top:0,behavior:'smooth'});showAccountPanel();};
+$('accountPanel')?.addEventListener('click',e=>{
+  if(e.target===$('accountPanel')) hideAccountPanel();
+});
+
+$('accountModal')?.addEventListener('click',e=>{
+  if(e.target===$('accountModal')) closeCreateAccount();
+});
+
+$('exerciseSelect')?.addEventListener('change',selectExercise);
+$('startSet')?.addEventListener('click',startSet);
+$('finishSet')?.addEventListener('click',finishSet);
+$('addSet')?.addEventListener('click',addSet);
+$('finishExercise')?.addEventListener('click',finishExercise);
+$('finishWorkout')?.addEventListener('click',finishWorkout);
+$('startAnother')?.addEventListener('click',startAnotherWorkout);
+
+$('clearHistory')?.addEventListener('click',async()=>{
+  if(!confirm('Clear all cloud workout history for this account?')) return;
+
+  try{
+    await deleteCloudHistory();
+    localStorage.removeItem('repfuel_history');
+    await renderHistory();
+    $('saveStatus').textContent='☁ Cloud history cleared';
+  }catch(e){
+    alert('Could not clear cloud history: '+e.message);
+  }
+});
+
+$('editProfile')?.addEventListener('click',()=>{
+  ['workoutCard','progressCard','summaryCard','historyCard']
+    .forEach(id=>$(id)?.classList.add('hidden'));
+
+  $('profileCard')?.classList.remove('hidden');
+
+  document.querySelectorAll('.nav-item')
+    .forEach(b=>b.classList.toggle(
+      'active',
+      b.dataset.section==='workout'
+    ));
+
+  window.scrollTo({top:0,behavior:'smooth'});
+});
 async function showRepFuelSection(section){
   const views=['workoutCard','progressCard','historyCard'];
   const summary=$('summaryCard');
