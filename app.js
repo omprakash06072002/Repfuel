@@ -209,36 +209,91 @@ function renderProgressDashboard(rows){
     </div>
   </div>`;
 }
+function formatWorkoutDuration(started, ended){
+  if(!started || !ended)return '—';
+  const seconds=Math.max(0,Math.round((new Date(ended)-new Date(started))/1000));
+  const h=Math.floor(seconds/3600), m=Math.floor((seconds%3600)/60), sec=seconds%60;
+  if(h)return `${h}h ${String(m).padStart(2,'0')}m`;
+  return `${m}m ${String(sec).padStart(2,'0')}s`;
+}
+function formatHistoryDate(value){
+  if(!value)return 'Date unavailable';
+  const d=new Date(value), now=new Date();
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const target=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const diff=Math.round((today-target)/86400000);
+  const time=d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  if(diff===0)return `Today · ${time}`;
+  if(diff===1)return `Yesterday · ${time}`;
+  return `${d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'})} · ${time}`;
+}
+function historySetMarkup(ex){
+  const cardio=isCardio(ex.family);
+  const sets=Array.isArray(ex.sets)?ex.sets:[];
+  if(!sets.length)return '<div class="history-detail-empty">No completed sets recorded.</div>';
+  return `<div class="history-set-list">${sets.map((s,i)=>{
+    const weight=cardio?'—':`${fmt(s.load)} kg`;
+    const reps=cardio?`${fmt((s.active||0)/60)} min`:`${Number(s.reps)||0} reps`;
+    return `<div class="history-set-row"><span><b>Set ${i+1}</b></span><span>${weight}</span><span>${reps}</span><span>${fmt(s.active)}s work</span><span>${fmt(s.rest)}s rest</span></div>`;
+  }).join('')}</div>`;
+}
+function historyExerciseMarkup(ex){
+  const sets=Array.isArray(ex.sets)?ex.sets:[];
+  const totalReps=sets.reduce((a,s)=>a+(Number(s.reps)||0),0);
+  const volume=Number(ex.result?.volume||sets.reduce((a,s)=>a+(Number(s.load)||0)*(Number(s.reps)||0),0));
+  return `<div class="history-exercise">
+    <div class="history-exercise-head">
+      <div><strong>${ex.name||'Exercise'}</strong><span>${ex.bodyPart||''} · ${ex.equipment||'equipment'}</span></div>
+      <div class="history-exercise-stat"><b>${sets.length}</b><small>sets</small></div>
+      <div class="history-exercise-stat"><b>${volume?Math.round(volume).toLocaleString():'0'}</b><small>kg vol.</small></div>
+    </div>
+    <div class="history-set-head"><span>SET</span><span>LOAD</span><span>REPS / TIME</span><span>WORK</span><span>REST</span></div>
+    ${historySetMarkup(ex)}
+  </div>`;
+}
 async function renderHistory(){
   const rows=await fetchCloudHistory();
-  const h=flattenCloudWorkouts(rows);
-  const sessions={};
-  h.forEach(x=>{const key=x.savedAt?.slice(0,10)||'unknown';(sessions[key]??=[]).push(x)});
-  const days=Object.entries(sessions).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,30);
   const list=$('historyList');
+  const safeRows=Array.isArray(rows)?rows:[];
   if(list) list.innerHTML=`
-    <div class="history-toolbar"><div><strong>Recent workouts</strong><span class="history-count"> · ${days.length} training day${days.length===1?'':'s'}</span></div><button class="ghost" type="button" onclick="renderHistory()">↻ Refresh</button></div>
-    ${days.length?days.map(([day,items])=>{
-      const kcal=items.reduce((a,x)=>a+(x.estimatedNetKcal||0),0);
-      const volume=items.reduce((a,x)=>a+(x.totalVolumeKg||0),0);
-      const sets=items.reduce((a,x)=>a+(x.sets||0),0);
-      const ex=[...new Set(items.map(x=>x.exercise))];
-      return `<div class="history-day"><div class="history-title"><div class="history-icon">↗</div><div><strong>${formatDay(day+'T12:00:00')}</strong><span>${ex.slice(0,3).join(' · ')}${ex.length>3?' · +'+(ex.length-3)+' more':''}</span></div></div><div class="history-metrics"><span><b>${Math.round(volume).toLocaleString()}</b> kg</span><span><b>${sets}</b> sets</span><span><b>${Math.round(kcal)}</b> kcal</span></div></div>`
-    }).join(''):'<div class="empty-analytics"><div class="empty-icon">◷</div><h3>No cloud workouts yet</h3><p>Finish and save your first workout. It will appear here automatically.</p></div>'}`;
+    <div class="history-toolbar"><div><strong>Recent workouts</strong><span class="history-count"> · ${safeRows.length} workout${safeRows.length===1?'':'s'}</span></div><button class="ghost" type="button" onclick="renderHistory()">↻ Refresh</button></div>
+    ${safeRows.length?safeRows.slice(0,30).map((w,index)=>{
+      const exercises=Array.isArray(w.exercises)?w.exercises:[];
+      const summary=w.summary||{};
+      const volume=Number(summary.volume||exercises.reduce((a,e)=>a+Number(e.result?.volume||0),0));
+      const kcal=Number(summary.netKcal||exercises.reduce((a,e)=>a+Number(e.result?.net||0),0));
+      const sets=Number(summary.sets||exercises.reduce((a,e)=>a+(Array.isArray(e.sets)?e.sets.length:0),0));
+      const duration=formatWorkoutDuration(w.started_at,w.ended_at);
+      const title=exercises.length?exercises.map(e=>e.name).slice(0,2).join(' + '):'Workout session';
+      const more=exercises.length>2?` + ${exercises.length-2} more`:'';
+      const dateLabel=formatHistoryDate(w.ended_at||w.created_at||w.started_at);
+      return `<details class="history-workout-card" ${index===0?'open':''}>
+        <summary class="history-workout-summary">
+          <div class="history-summary-main"><div class="history-icon">↗</div><div><strong>${title}${more}</strong><span>${dateLabel}</span></div></div>
+          <div class="history-summary-metrics"><span><b>${Math.round(volume).toLocaleString()}</b><small>kg</small></span><span><b>${sets}</b><small>sets</small></span><span><b>${Math.round(kcal)}</b><small>kcal</small></span><span><b>${duration}</b><small>duration</small></span></div>
+          <span class="history-chevron">⌄</span>
+        </summary>
+        <div class="history-workout-details">
+          <div class="history-detail-top"><div><p class="eyebrow">WORKOUT DETAILS</p><h3>${dateLabel}</h3></div><span class="history-exercise-count">${exercises.length} exercise${exercises.length===1?'':'s'}</span></div>
+          <div class="history-detail-stats"><div><span>Volume</span><b>${Math.round(volume).toLocaleString()} kg</b></div><div><span>Sets</span><b>${sets}</b></div><div><span>Calories</span><b>${Math.round(kcal)} kcal</b></div><div><span>Duration</span><b>${duration}</b></div></div>
+          <div class="history-exercises">${exercises.length?exercises.map(historyExerciseMarkup).join(''):'<div class="history-detail-empty">No exercise details were saved for this workout.</div>'}</div>
+        </div>
+      </details>`;
+    }).join(''):`<div class="history-empty"><div><div class="empty-icon">◷</div><h3>No cloud workouts yet</h3><p>Finish and save your first workout. It will appear here automatically.</p><button class="primary" type="button" onclick="showRepFuelSection('workout')">Start your first workout</button></div></div>`}`;
 
-  const totalKcal=h.reduce((a,x)=>a+(x.estimatedNetKcal||0),0);
-  const totalVolume=h.reduce((a,x)=>a+(x.totalVolumeKg||0),0);
+  const h=flattenCloudWorkouts(safeRows);
+  const totalKcal=h.reduce((a,x)=>a+(Number(x.estimatedNetKcal)||0),0);
+  const totalVolume=h.reduce((a,x)=>a+(Number(x.totalVolumeKg)||0),0);
   if($('historyKcal')) $('historyKcal').textContent=Math.round(totalKcal).toLocaleString();
   if($('historyVolume')) $('historyVolume').textContent=Math.round(totalVolume).toLocaleString()+' kg';
   if($('historyDays')) $('historyDays').textContent=new Set(h.map(x=>x.savedAt?.slice(0,10)).filter(Boolean)).size;
   if($('historySets')) $('historySets').textContent=h.reduce((a,x)=>a+(x.sets||0),0);
-  if($('progressWorkouts')) $('progressWorkouts').textContent=rows.length;
+  if($('progressWorkouts')) $('progressWorkouts').textContent=safeRows.length;
   if($('progressVolume')) $('progressVolume').textContent=Math.round(totalVolume).toLocaleString()+' kg';
-  const bestVolume=rows.reduce((best,w)=>Math.max(best,Number(w.summary?.volume||0)),0);
+  const bestVolume=safeRows.reduce((best,w)=>Math.max(best,Number(w.summary?.volume||0)),0);
   if($('progressBest')) $('progressBest').textContent=Math.round(bestVolume).toLocaleString()+' kg';
 }
 
-const EXERCISE_IMAGE_MAP = {"barbell_bench_press":"assets/exercises/barbell_press.png","incline_barbell_bench_press":"assets/exercises/inclined_barwell_bench_press.png","dumbbell_bench_press":"assets/exercises/dumbel_bench_press.png","incline_dumbbell_press":"assets/exercises/inclined_dumbel_press.png","pec_deck_machine_fly":"assets/exercises/pecdeck_fly.png","cable_chest_fly":"assets/exercises/cabel_chest_fly.png","lat_pulldown":"assets/exercises/latt_pull_down.png","barbell_row":"assets/exercises/barbell_row.png","seated_cable_row":"assets/exercises/seated_cabel_row.png","t_bar_row":"assets/exercises/t_bar.png","straight_arm_pulldown":"assets/exercises/straight_arm_pulldown.png","dumbbell_pullover":"assets/exercises/dumbel_pullover.png","barbell_squat":"assets/exercises/barbell_squat.png","leg_press":"assets/exercises/leg_press.png","leg_extension":"assets/exercises/leg_extention.png","leg_curl":"assets/exercises/leg_curl.png","hip_thrust":"assets/exercises/hip_thrust.png","calf_raise":"assets/exercises/calf_raises.png","barbell_curl":"assets/exercises/barbell_curl.png","hammer_curl":"assets/exercises/hammer_curl.png","preacher_curl":"assets/exercises/preacher_curl.png","triceps_pushdown":"assets/exercises/tricep_pushdown.png","overhead_triceps_extension":"assets/exercises/overhead_tricep_extention.png","skull_crushers":"assets/exercises/skull_crusher.png","dumbbell_shoulder_press":"assets/exercises/dumbell_shoulder_press.png","dumbbell_lateral_raise":"assets/exercises/dumbell_lateral_raise.png","front_dumbbell_raise":"assets/exercises/front_dumbel_raise.png","reverse_pec_deck":"assets/exercises/reverse_pec_deck.png","face_pull":"assets/exercises/face_pull.png"};
 function findExerciseImage(e){const key=(e.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');return EXERCISE_IMAGE_MAP[key]||null;}
 function exerciseVisual(e){
   const image=findExerciseImage(e);
