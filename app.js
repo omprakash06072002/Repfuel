@@ -9,7 +9,7 @@ const EXERCISES = {
   Cardio:[['Treadmill — Walking','treadmill','treadmill_walk'],['Treadmill — Running','treadmill','treadmill_run'],['Treadmill — Incline Walking','treadmill','treadmill_incline_walk'],['Stationary Bike','bike','bike_stationary'],['Spin Bike','bike','spin_bike'],['Elliptical / Cross Trainer','machine','elliptical'],['StairMaster','machine','stair_climber'],['Rowing Machine','machine','rower'],['Air Bike','bike','air_bike'],['SkiErg','machine','skierg']]
 };
 
-const MODEL_VERSION='1.5.0';
+const MODEL_VERSION='2.1.0';
 const REST_MET=1.5;
 const BASE_MET={
  heavy_compound:5.5,db_compound:5.0,machine_compound:4.2,isolation:3.7,
@@ -388,17 +388,20 @@ function tick(){if(!state.setStart)return;$('timer').textContent=new Date((Date.
 function startSet(){state.setStart=Date.now();$('startSet').disabled=true;$('finishSet').disabled=false;$('addSet').disabled=true;state.timer=setInterval(tick,250)}
 function finishSet(){
   if(!state.setStart)return;
-  const end=Date.now(),active=(end-state.setStart)/1000,rest=state.sets.length?(state.setStart-state.sets.at(-1).end)/1000:0;
+  const end=Date.now(),active=(end-state.setStart)/1000,rest=state.sets.length?Math.max(0,(state.setStart-state.sets.at(-1).end)/1000):0;
+  if(active<0.5){ clearInterval(state.timer); state.setStart=null; $('finishSet').disabled=true; $('startSet').disabled=false; $('timer').textContent='00:00'; return; }
   clearInterval(state.timer);state.setStart=null;
   const startMs=end-active*1000;
   state.draft={start:startMs,end,active,rest};
   $('finishSet').disabled=true;$('startSet').disabled=false;$('addSet').disabled=false;$('timer').textContent='00:00';
 }
 function addSet(){
-  if(!state.draft)return;
+  if(!state.draft||!state.exercise)return;
+  if(state.sets.some(s=>s.start===state.draft.start && s.end===state.draft.end))return;
   const cardio=isCardio(state.exercise.family);
   const reps=cardio?1:Number($('reps').value);
-  if(!cardio&&!reps)return;
+  if(!cardio && (!Number.isFinite(reps)||reps<1))return;
+  if(cardio && (!Number.isFinite(state.draft.active)||state.draft.active<5))return;
   // IMPORTANT: load is captured independently for THIS set.
   // The user can change the load before every subsequent set.
   const load=cardio?0:Number($('load').value===''?0:$('load').value);
@@ -428,62 +431,126 @@ function epley(load,reps){return load>0&&reps>0?load*(1+reps/30):0}
 function profile(){
   return {age:+$('age').value||0,sex:$('sex').value,height:+$('height').value||0,weight:+$('bodyWeight').value||0,bodyFat:$('bodyFat').value===''?null:+$('bodyFat').value,consent:$('consent').checked,level:localStorage.getItem('repfuel_level')||$('level')?.value||'beginner'};
 }
+function bodyweightVolumeFactor(family){
+  // External resistance volume remains the primary strength metric.
+  // Bodyweight movements are intentionally kept separate because the
+  // actual fraction of body mass loaded varies substantially by movement.
+  return ({
+    bodyweight:0.65, pullup:1.00, bodyweight_compound:0.75,
+    lunge:0.70, unilateral_leg:0.70, hip_thrust:0.70,
+    core:0.45, core_high:0.55, bodyweight_high:0.55
+  })[family] ?? 0;
+}
+function calculateVolume(e,sets,p){
+  const external=sets.reduce((a,s)=>a+(Number(s.load)||0)*(Number(s.reps)||0),0);
+  const bw=(p?.weight||0);
+  const bwReps=sets.reduce((a,s)=>a+(Number(s.reps)||0),0);
+  const factor=bodyweightVolumeFactor(e.family);
+  const estimatedBodyweight=(!isCardio(e.family)&&bw>0&&factor>0)?bw*bwReps*factor:0;
+  return {external,estimatedBodyweight,total:external+estimatedBodyweight};
+}
 function resistanceMET(e,sets){
-  let total=0;
+  if(!sets.length)return BASE_MET[e.family]||3.5;
+  let weighted=0,totalActive=0;
   sets.forEach(s=>{
+    const active=clamp(Number(s.active)||0,5,180);
+    const reps=Math.max(0,Number(s.reps)||0);
+    const load=Math.max(0,Number(s.load)||0);
     let effort=1;
-    if(s.load>0 && s.reps>0){
-      const one=epley(s.load,s.reps);
-      const ri=one?clamp(s.load/one,0.4,0.98):0.6;
-      effort*=clamp(0.96+(ri-0.60)*0.45,0.86,1.12);
+    if(load>0 && reps>0){
+      const one=epley(load,reps);
+      const intensity=one?clamp(load/one,0.40,0.98):0.60;
+      effort*=clamp(0.92+(intensity-0.60)*0.55,0.82,1.12);
     }
-    const duration=clamp(0.94+(s.active/30)*0.10,0.92,1.08);
-    const reps=clamp(0.95+(s.reps-6)*0.008,0.92,1.06);
-    total+=effort*duration*reps;
+    const durationFactor=clamp(0.90+(active/30)*0.10,0.90,1.08);
+    const repFactor=clamp(0.96+(reps-8)*0.006,0.92,1.05);
+    const setMET=(BASE_MET[e.family]||3.5)*effort*durationFactor*repFactor;
+    weighted+=setMET*active;
+    totalActive+=active;
   });
-  return clamp((BASE_MET[e.family]||3.5)*(sets.length?total/sets.length:1),2.4,7.5);
+  return clamp(totalActive?weighted/totalActive:(BASE_MET[e.family]||3.5),2.5,8.0);
 }
 function cardioMET(e){
-  const speed=+$('cardioSpeed').value||0,inc=+$('cardioIncline').value||0,watts=+$('cardioWatts').value||0;
+  const speed=+$('cardioSpeed')?.value||0;
+  const inc=+$('cardioIncline')?.value||0;
+  const watts=+$('cardioWatts')?.value||0;
+  const intensity=$('cardioIntensity')?.value||'moderate';
   if(e.family==='treadmill_walk'){
-    if(speed<2.5)return 3.0;if(speed<3.0)return 3.5;if(speed<3.5)return 3.8;if(speed<4.0)return 4.8;if(speed<4.5)return 5.8;return 6.8;
+    if(speed<=2.0)return 2.5;
+    if(speed<=2.5)return 3.0;
+    if(speed<=3.0)return 3.5;
+    if(speed<=3.5)return 4.3;
+    if(speed<=4.0)return 5.0;
+    if(speed<=4.5)return 5.8;
+    return 6.5;
   }
-  if(e.family==='treadmill_incline_walk') return clamp(3.8+inc*0.35+(speed>3?1.0:0),3.8,10);
+  if(e.family==='treadmill_incline_walk'){
+    return clamp(3.5+(Math.max(0,speed-2.5)*1.15)+(inc*0.28),3.5,9.5);
+  }
   if(e.family==='treadmill_run'){
-    let m=speed<4.3?6.5:speed<4.9?7.8:speed<5.3?8.5:speed<5.9?9.0:speed<6.4?9.3:speed<7?10.5:speed<7.6?11:speed<8.1?11.8:speed<8.7?12:speed<9.1?13:14.8;
-    if(inc)m+=Math.min(4,inc*.25);return clamp(m,6,18);
+    // Speed input is mph. Values are intentionally conservative.
+    let m=speed<=4.0?6.0:speed<=4.5?7.0:speed<=5.0?8.3:speed<=5.5?9.0:speed<=6.0?9.8:speed<=6.5?10.5:speed<=7.0?11.0:speed<=8.0?11.8:12.8;
+    if(inc)m+=Math.min(3,inc*0.20);
+    return clamp(m,6,16);
   }
   if(['bike_stationary','spin_bike','air_bike'].includes(e.family)){
-    if(!watts)return BASE_MET[e.family];
-    return watts<50?4:watts<70?5:watts<100?6:watts<125?6.8:watts<150?8:watts<200?10.3:watts<230?10.8:12.5;
+    if(!watts)return intensity==='vigorous'?9.0:6.8;
+    return watts<50?4.0:watts<75?5.0:watts<100?6.0:watts<125?6.8:watts<150?8.0:watts<200?10.0:watts<250?11.0:12.5;
   }
-  if(e.family==='rower')return watts?watts<100?5:watts<150?7.5:watts<200?11:14:7.3;
-  if(e.family==='elliptical')return $('cardioIntensity').value==='vigorous'?9:5;
-  if(e.family==='stair_climber')return 9.3;
-  if(e.family==='skierg')return $('cardioIntensity').value==='vigorous'?18:10.5;
+  if(e.family==='rower'){
+    if(!watts)return intensity==='vigorous'?10.0:7.0;
+    return watts<100?5.0:watts<150?7.0:watts<200?9.5:12.0;
+  }
+  if(e.family==='elliptical')return intensity==='vigorous'?7.5:5.0;
+  if(e.family==='stair_climber')return intensity==='vigorous'?9.0:7.0;
+  if(e.family==='skierg')return intensity==='vigorous'?12.5:8.5;
   return BASE_MET[e.family]||5;
 }
 function publishedResistanceAnchor(p,setData){
-  // Lytle et al. 2019: net kcal = .874*height - .596*age -1.016*fatMass
-  // +1.638*leanMass + 2.461*(totalVolume*1e-3) -110.742.
-  // This anchor was developed for a 7-exercise bout at 60-70% 1RM with 2-3 sets
-  // and should be used as a validation/sanity reference, not a universal per-set formula.
   if(p.bodyFat==null||!p.height||!p.age||!p.weight)return null;
   const fat=p.weight*p.bodyFat/100,lean=p.weight-fat;
   const volume=setData.reduce((a,s)=>a+s.load*s.reps,0);
-  return .874*p.height-.596*p.age-1.016*fat+1.638*lean+2.461*(volume*1e-3)-110.742;
+  const kcal=.874*p.height-.596*p.age-1.016*fat+1.638*lean+2.461*(volume*1e-3)-110.742;
+  return Number.isFinite(kcal)&&kcal>0?kcal:null;
 }
 function estimate(e,sets){
   const p=profile(),bw=p.weight||70;
-  const active=sets.reduce((a,s)=>a+s.active,0),rest=sets.reduce((a,s)=>a+s.rest,0);
+  const active=sets.reduce((a,s)=>a+clamp(Number(s.active)||0,0,600),0);
+  const rest=sets.reduce((a,s)=>a+clamp(Number(s.rest)||0,0,1800),0);
+  const volume=calculateVolume(e,sets,p);
   const met=isCardio(e.family)?cardioMET(e):resistanceMET(e,sets);
-  const gross=met*3.5*bw*(active/60)/200 + REST_MET*3.5*bw*(rest/60)/200;
+
+  // Gross MET calories include resting metabolism. For the app's workout
+  // calorie figure we report net activity calories, then keep gross as a
+  // diagnostic value for future analytics.
+  const activeGross=met*3.5*bw*(active/60)/200;
+  const restGross=REST_MET*3.5*bw*(rest/60)/200;
+  const gross=activeGross+restGross;
   const baseline=3.5*bw*((active+rest)/60)/200;
   const net=Math.max(0,gross-baseline);
+
   const anchor=isCardio(e.family)?null:publishedResistanceAnchor(p,sets);
-  const uncertainty=isCardio(e.family)?Math.max(5,net*.10+3):Math.max(7,net*.20+4);
-  return {net,gross,low:Math.max(0,net-uncertainty),high:net+uncertainty,active,rest,volume:sets.reduce((a,s)=>a+s.load*s.reps,0),met,anchor,modelVersion:MODEL_VERSION};
+  const uncertainty=isCardio(e.family)
+    ? Math.max(4,net*0.12+2)
+    : Math.max(6,net*0.22+3);
+
+  return {
+    net,
+    gross,
+    low:Math.max(0,net-uncertainty),
+    high:net+uncertainty,
+    active,
+    rest,
+    volume:volume.external,
+    externalVolume:volume.external,
+    estimatedBodyweightVolume:volume.estimatedBodyweight,
+    bodyweightReps:(!isCardio(e.family)&&bodyweightVolumeFactor(e.family)>0)?sets.reduce((a,s)=>a+(Number(s.reps)||0),0):0,
+    met,
+    anchor,
+    modelVersion:MODEL_VERSION
+  };
 }
+
 async function saveWorkoutToCloud(){
   if(!window.repSupabase?.auth)return {ok:false,error:'Supabase client not configured'};
   const {data:{user}}=await repSupabase.auth.getUser();
@@ -565,7 +632,7 @@ function startAnotherWorkout(){location.reload()}
 function renderLiveStats(){
   const exercises=state.exercises||[];
   const sets=exercises.flatMap(x=>x.sets||[]);
-  const volume=sets.reduce((a,x)=>a+(x.load||0)*(x.reps||0),0);
+  const volume=sets.reduce((a,x)=>a+(Number(x.load)||0)*(Number(x.reps)||0),0);
   const active=sets.reduce((a,x)=>a+(x.active||0),0);
   const kcal=exercises.reduce((a,x)=>a+(x.result?.net||0),0);
   const ids=[['liveVolume',`${Math.round(volume).toLocaleString()} kg`],['liveActive',`${fmt(active/60)} min`],['liveSets',`${sets.length}`],['liveKcal',`${Math.round(kcal)} kcal`],['sideExercises',`${exercises.length}`],['sideSets',`${sets.length}`],['sideVolume',`${Math.round(volume).toLocaleString()} kg`],['sideKcal',`${Math.round(kcal)} kcal`]];
