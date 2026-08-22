@@ -761,11 +761,34 @@ async function loadProfile(){
   else{$('profileCard').classList.remove('hidden');$('workoutCard').classList.add('hidden');$('summaryCard').classList.add('hidden');$('historyCard').classList.add('hidden');}
 }
 
+let editingProfile = false;
+
+function openFitnessProfileEditor(){
+  const p=JSON.parse(localStorage.getItem('repfuel_profile')||'null') || profile();
+  applyProfileToForm(p);
+  editingProfile=true;
+  $('profileCard')?.classList.remove('hidden');
+  $('workoutCard')?.classList.add('hidden');
+  $('progressCard')?.classList.add('hidden');
+  $('summaryCard')?.classList.add('hidden');
+  $('historyCard')?.classList.add('hidden');
+  document.body.classList.add('profile-editing');
+  if($('saveProfile')) $('saveProfile').textContent='Save profile changes →';
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.section==='workout'));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function closeFitnessProfileEditor(){
+  editingProfile=false;
+  document.body.classList.remove('profile-editing');
+  if($('saveProfile')) $('saveProfile').textContent='Start my workout →';
+}
+
 $('saveProfile').onclick=async()=>{
   const p=profile();p.level=$('level').value;
   if(!p.age||!p.height||!p.weight){alert('Please enter age, height and weight.');return}
   localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',$('level').value);
-  const cloud=await saveProfileToCloud(p);$('saveStatus').textContent=cloud.ok?'☁ Profile synced':'Local profile';enterWorkout(p);
+  const cloud=await saveProfileToCloud(p);$('saveStatus').textContent=cloud.ok?'☁ Profile synced':'Local profile';closeFitnessProfileEditor();enterWorkout(p);
 };
 
 
@@ -1042,6 +1065,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('setPasswordBtn')?.addEventListener('click', setPermanentPassword);
   $('loginBtn')?.addEventListener('click', signInExistingAccount);
   $('openLoginBtn')?.addEventListener('click', openLoginAccount);
+  $('editFitnessProfileBtn')?.addEventListener('click',()=>{hideAccountPanel();openFitnessProfileEditor();});
+  $('editFitnessProfileBtnPermanent')?.addEventListener('click',()=>{hideAccountPanel();openFitnessProfileEditor();});
   $('backToCreateBtn')?.addEventListener('click', openCreateAccount);
   $('signOutBtn')?.addEventListener('click', signOutRepFuel);
 
