@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="GAINORY research-anchored workout tracker and calorie estimator.">
-<title>GAINORY — Workout Intelligence — Calculate. Train. Gain.</title>
+<title>GAINORY — Workout Intelligence</title>
 <link rel="stylesheet" href="styles.css">
 
 <style>
@@ -73,7 +73,7 @@
 }
 </style>
 
-<style id="gainory-mobile-nav-v2">
+<style id="repfuel-mobile-nav-v2">
 /* GAINORY mobile navigation: deliberately overrides the desktop top-nav layout. */
 @media (max-width: 700px) {
   body {
@@ -237,7 +237,7 @@
 }
 </style>
 
-<style id="gainory-mobile-account-nav-fix">
+<style id="repfuel-mobile-account-nav-fix">
 /* =========================================================
    MOBILE ACCOUNT ACCESSIBILITY
    Keep Profile permanently reachable on phones/tablets.
@@ -349,7 +349,7 @@
 </style>
 
 
-<style id="gainory-account-stage21">
+<style id="repfuel-account-stage21">
 .account-panel{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.62);display:flex;align-items:flex-start;justify-content:center;padding:88px 18px 24px;overflow:auto;backdrop-filter:blur(8px)}
 .account-panel.hidden,.modal-backdrop.hidden{display:none!important}
 .account-card,.modal-card{width:min(620px,100%);background:#151A17;border:1px solid #29312C;border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.5);padding:24px}
@@ -375,7 +375,7 @@
 </style>
 
 
-<style id="gainory-logo-mobile-fix">
+<style id="repfuel-logo-mobile-fix">
 @media(max-width:700px){
   .topbar .logo{display:grid!important;visibility:visible!important;opacity:1!important;flex:0 0 34px!important;width:34px!important;height:34px!important;min-width:34px!important}
   .topbar .brand{display:flex!important;align-items:center!important;gap:8px!important}
@@ -383,7 +383,7 @@
 </style>
 
 
-<style id="gainory-phase1-final-polish">
+<style id="repfuel-phase1-final-polish">
 /* =========================================================
    REPFUEL 2.1.0 — PHASE 1 FINAL UI POLISH
    Visual-only/responsive refinements. Cloud/account logic untouched.
@@ -783,9 +783,27 @@ select {
 }
 
 </style>
+
+<style id="gainory-brand-safe">
+  .topbar .gainory-logo{
+    background:transparent!important;
+    color:inherit!important;
+    overflow:hidden!important;
+    padding:0!important;
+    border:0!important;
+  }
+  .topbar .gainory-logo img{
+    width:100%!important;
+    height:100%!important;
+    display:block!important;
+    object-fit:cover!important;
+    border-radius:inherit!important;
+  }
+</style>
+
 </head>
 <body>
-<header class="topbar"><div class="brand"><div class="logo">RF</div><div><strong>GAINORY</strong><span>workout intelligence · model 2.1.0</span></div></div><nav class="main-nav"><button type="button" class="nav-item active" data-section="workout" onclick="showGAINORYSection('workout')">⚒ Workout</button><button type="button" class="nav-item" data-section="progress" onclick="showGAINORYSection('progress')">▥ Progress</button><button type="button" class="nav-item" data-section="history" onclick="showGAINORYSection('history')">◷ History</button></nav><div class="top-actions"><div id="saveStatus" class="status">Local mode</div><button id="editProfile" class="top-btn">Profile</button></div></header>
+<header class="topbar"><div class="brand"><div class="logo gainory-logo"><img src="assets/gainory-mark.png" alt="GAINORY"></div><div><strong>GAINORY</strong><span>workout intelligence · model 2.1.0</span></div></div><nav class="main-nav"><button type="button" class="nav-item active" data-section="workout" onclick="showRepFuelSection('workout')">⚒ Workout</button><button type="button" class="nav-item" data-section="progress" onclick="showRepFuelSection('progress')">▥ Progress</button><button type="button" class="nav-item" data-section="history" onclick="showRepFuelSection('history')">◷ History</button></nav><div class="top-actions"><div id="saveStatus" class="status">Local mode</div><button id="editProfile" class="top-btn">Profile</button></div></header>
 <main>
 <section id="profileCard" class="card hero-card">
   <div class="hero-copy"><p class="eyebrow">GAINORY · Model 2.1.0</p><h1>Track your workout.<br><span>Let GAINORY handle the math.</span></h1><p class="hero-sub">Log sets in real time, see your training volume, and get a research-anchored calorie estimate without carrying a notebook around the gym.</p></div>
@@ -867,7 +885,7 @@ select {
       <h2>Your training progress</h2>
       <p class="muted">Calculated from the workouts stored in your GAINORY cloud account.</p>
     </div>
-    <button type="button" class="ghost" onclick="refreshGAINORYProgress()">↻ Refresh</button>
+    <button type="button" class="ghost" onclick="refreshRepFuelProgress()">↻ Refresh</button>
   </div>
   <div id="progressDashboard"></div>
 </section>
@@ -916,7 +934,7 @@ select {
   <div class="modal-card">
     <div class="account-head">
       <div>
-        <p class="eyebrow">REPfuel ACCOUNT</p>
+        <p class="eyebrow">GAINORY ACCOUNT</p>
         <h2 id="accountModalTitle">Create your account</h2>
         <p id="accountModalText" class="muted">We'll send a verification email. Your current guest workouts stay with this account.</p>
       </div>
