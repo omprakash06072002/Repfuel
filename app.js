@@ -31,12 +31,12 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const fmt=x=>Number(x||0).toFixed(1);
 const isCardio=f=>f&&(['treadmill_walk','treadmill_run','treadmill_incline_walk','bike_stationary','spin_bike','elliptical','stair_climber','rower','air_bike','skierg'].includes(f));
 
-const sessionId=localStorage.getItem('repfuel_session')||crypto.randomUUID();
-localStorage.setItem('repfuel_session',sessionId);
+const sessionId=localStorage.getItem('gainory_session')||crypto.randomUUID();
+localStorage.setItem('gainory_session',sessionId);
 
 let state={parts:[],exerciseOptions:[],exercise:null,sets:[],draft:null,workoutStart:null,setStart:null,timer:null,exercises:[],workoutId:crypto.randomUUID(),finished:false};
 function getHistory(){
-  return JSON.parse(localStorage.getItem('repfuel_history')||'[]');
+  return JSON.parse(localStorage.getItem('gainory_history')||'[]');
 }
 
 function flattenCloudWorkouts(rows){
@@ -59,7 +59,7 @@ async function fetchCloudHistory(){
   const {data:{user}}=await repSupabase.auth.getUser();
   if(!user)return [];
   const {data,error}=await repSupabase
-    .from('repfuel_workouts')
+    .from('gainory_workouts')
     .select('id,user_id,started_at,ended_at,exercises,summary,created_at')
     .eq('user_id',user.id)
     .order('ended_at',{ascending:false})
@@ -217,7 +217,7 @@ function renderProgressDashboard(rows){
   if(!d.workouts.length){
     el.innerHTML=`<div class="analytics-shell">
       <div class="analytics-hero"><div><p class="eyebrow">03 · PROGRESS</p><h2>Your training dashboard</h2><p class="muted">Your charts, trends and personal records will appear here after your first saved workout.</p></div><span class="sync-pill"><i class="sync-dot"></i> Cloud connected</span></div>
-      <div class="empty-analytics"><div class="empty-icon">↗</div><h3>Your progress starts with your first workout</h3><p>Finish a workout and RepFuel will build volume, frequency, calorie and strength trends automatically.</p><br><button class="primary" type="button" onclick="showRepFuelSection('workout')">Start a workout →</button></div>
+      <div class="empty-analytics"><div class="empty-icon">↗</div><h3>Your progress starts with your first workout</h3><p>Finish a workout and GAINORY will build volume, frequency, calorie and strength trends automatically.</p><br><button class="primary" type="button" onclick="showGAINORYSection('workout')">Start a workout →</button></div>
     </div>`;
     return;
   }
@@ -371,7 +371,7 @@ async function renderHistory(){
           <div class="history-exercises">${exercises.length?exercises.map(historyExerciseMarkup).join(''):'<div class="history-detail-empty">No exercise details were saved for this workout.</div>'}</div>
         </div>
       </details>`;
-    }).join(''):`<div class="history-empty"><div><div class="empty-icon">◷</div><h3>No cloud workouts yet</h3><p>Finish and save your first workout. It will appear here automatically.</p><button class="primary" type="button" onclick="showRepFuelSection('workout')">Start your first workout</button></div></div>`}`;
+    }).join(''):`<div class="history-empty"><div><div class="empty-icon">◷</div><h3>No cloud workouts yet</h3><p>Finish and save your first workout. It will appear here automatically.</p><button class="primary" type="button" onclick="showGAINORYSection('workout')">Start your first workout</button></div></div>`}`;
 
   const h=flattenCloudWorkouts(safeRows);
   const totalKcal=h.reduce((a,x)=>a+(Number(x.estimatedNetKcal)||0),0);
@@ -386,7 +386,6 @@ async function renderHistory(){
   if($('progressBest')) $('progressBest').textContent=Math.round(bestVolume).toLocaleString()+' kg';
 }
 
-const EXERCISE_IMAGE_MAP = {"barbell_bench_press":"assets/exercises/barbell_press.png","incline_barbell_bench_press":"assets/exercises/inclined_barwell_bench_press.png","dumbbell_bench_press":"assets/exercises/dumbel_bench_press.png","incline_dumbbell_press":"assets/exercises/inclined_dumbel_press.png","pec_deck_machine_fly":"assets/exercises/pecdeck_fly.png","cable_chest_fly":"assets/exercises/cabel_chest_fly.png","lat_pulldown":"assets/exercises/latt_pull_down.png","barbell_row":"assets/exercises/barbell_row.png","seated_cable_row":"assets/exercises/seated_cabel_row.png","t_bar_row":"assets/exercises/t_bar.png","straight_arm_pulldown":"assets/exercises/straight_arm_pulldown.png","dumbbell_pullover":"assets/exercises/dumbel_pullover.png","barbell_squat":"assets/exercises/barbell_squat.png","leg_press":"assets/exercises/leg_press.png","leg_extension":"assets/exercises/leg_extention.png","leg_curl":"assets/exercises/leg_curl.png","hip_thrust":"assets/exercises/hip_thrust.png","calf_raise":"assets/exercises/calf_raises.png","barbell_curl":"assets/exercises/barbell_curl.png","hammer_curl":"assets/exercises/hammer_curl.png","preacher_curl":"assets/exercises/preacher_curl.png","triceps_pushdown":"assets/exercises/tricep_pushdown.png","overhead_triceps_extension":"assets/exercises/overhead_tricep_extention.png","skull_crushers":"assets/exercises/skull_crusher.png","dumbbell_shoulder_press":"assets/exercises/dumbell_shoulder_press.png","dumbbell_lateral_raise":"assets/exercises/dumbell_lateral_raise.png","front_dumbbell_raise":"assets/exercises/front_dumbel_raise.png","reverse_pec_deck":"assets/exercises/reverse_pec_deck.png","face_pull":"assets/exercises/face_pull.png"};
 function findExerciseImage(e){const key=(e.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');return EXERCISE_IMAGE_MAP[key]||null;}
 function exerciseVisual(e){
   const image=findExerciseImage(e);
@@ -522,7 +521,7 @@ function renderSets(){
 }
 function epley(load,reps){return load>0&&reps>0?load*(1+reps/30):0}
 function profile(){
-  return {age:+$('age').value||0,sex:$('sex').value,height:+$('height').value||0,weight:+$('bodyWeight').value||0,bodyFat:$('bodyFat').value===''?null:+$('bodyFat').value,consent:$('consent').checked,level:localStorage.getItem('repfuel_level')||$('level')?.value||'beginner'};
+  return {age:+$('age').value||0,sex:$('sex').value,height:+$('height').value||0,weight:+$('bodyWeight').value||0,bodyFat:$('bodyFat').value===''?null:+$('bodyFat').value,consent:$('consent').checked,level:localStorage.getItem('gainory_level')||$('level')?.value||'beginner'};
 }
 function bodyweightVolumeFactor(family){
   // External resistance volume remains the primary strength metric.
@@ -666,7 +665,7 @@ async function saveWorkoutToCloud(){
       modelVersion:MODEL_VERSION
     }
   };
-  const {error}=await repSupabase.from('repfuel_workouts').upsert(payload,{onConflict:'id'});
+  const {error}=await repSupabase.from('gainory_workouts').upsert(payload,{onConflict:'id'});
   if(error){console.error('Cloud workout save failed:',error);return {ok:false,error:error.message};}
   return {ok:true};
 }
@@ -676,7 +675,7 @@ async function saveProfileToCloud(p){
   const {data:{user}}=await repSupabase.auth.getUser();
   if(!user)return {ok:false,error:'No authenticated user'};
   const row={user_id:user.id,age:p.age,sex:p.sex,height_cm:p.height,weight_kg:p.weight,body_fat_percent:p.bodyFat,training_level:p.level,consent:p.consent,updated_at:new Date().toISOString()};
-  const {error}=await repSupabase.from('repfuel_profiles').upsert(row,{onConflict:'user_id'});
+  const {error}=await repSupabase.from('gainory_profiles').upsert(row,{onConflict:'user_id'});
   if(error){console.error('Cloud profile save failed:',error);return {ok:false,error:error.message};}
   return {ok:true};
 }
@@ -685,12 +684,12 @@ async function loadProfileFromCloud(){
   if(!window.repSupabase?.auth)return null;
   const {data:{user}}=await repSupabase.auth.getUser();
   if(!user)return null;
-  const {data,error}=await repSupabase.from('repfuel_profiles').select('*').eq('user_id',user.id).maybeSingle();
+  const {data,error}=await repSupabase.from('gainory_profiles').select('*').eq('user_id',user.id).maybeSingle();
   if(error){console.error('Cloud profile fetch failed:',error);return null;}
   if(!data)return null;
   const p={age:data.age||0,sex:data.sex||'male',height:data.height_cm||0,weight:data.weight_kg||0,bodyFat:data.body_fat_percent??null,consent:!!data.consent,level:data.training_level||'beginner'};
-  localStorage.setItem('repfuel_profile',JSON.stringify(p));
-  localStorage.setItem('repfuel_level',p.level);
+  localStorage.setItem('gainory_profile',JSON.stringify(p));
+  localStorage.setItem('gainory_level',p.level);
   return p;
 }
 
@@ -698,7 +697,7 @@ async function deleteCloudHistory(){
   if(!window.repSupabase?.auth)return;
   const {data:{user}}=await repSupabase.auth.getUser();
   if(!user)return;
-  const {error}=await repSupabase.from('repfuel_workouts').delete().eq('user_id',user.id);
+  const {error}=await repSupabase.from('gainory_workouts').delete().eq('user_id',user.id);
   if(error)throw error;
 }
 
@@ -749,14 +748,14 @@ function applyProfileToForm(p){
   if($('progressLevel')) $('progressLevel').textContent=(p.level||'beginner').replace(/^./,c=>c.toUpperCase());
 }
 function enterWorkout(p){
-  applyProfileToForm(p);localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',p.level);
+  applyProfileToForm(p);localStorage.setItem('gainory_profile',JSON.stringify(p));localStorage.setItem('gainory_level',p.level);
   $('profileCard').classList.add('hidden');$('workoutCard').classList.remove('hidden');$('progressCard').classList.add('hidden');$('summaryCard').classList.add('hidden');$('historyCard').classList.add('hidden');
   state.workoutStart=Date.now();renderParts();renderExercises();renderHistory();
 }
 async function loadProfile(){
   const cloud=await loadProfileFromCloud();
   if(cloud){enterWorkout(cloud);return}
-  const local=JSON.parse(localStorage.getItem('repfuel_profile')||'null');
+  const local=JSON.parse(localStorage.getItem('gainory_profile')||'null');
   if(local) enterWorkout(local);
   else{$('profileCard').classList.remove('hidden');$('workoutCard').classList.add('hidden');$('summaryCard').classList.add('hidden');$('historyCard').classList.add('hidden');}
 }
@@ -764,7 +763,7 @@ async function loadProfile(){
 $('saveProfile').onclick=async()=>{
   const p=profile();p.level=$('level').value;
   if(!p.age||!p.height||!p.weight){alert('Please enter age, height and weight.');return}
-  localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',$('level').value);
+  localStorage.setItem('gainory_profile',JSON.stringify(p));localStorage.setItem('gainory_level',$('level').value);
   const cloud=await saveProfileToCloud(p);$('saveStatus').textContent=cloud.ok?'☁ Profile synced':'Local profile';enterWorkout(p);
 };
 
@@ -775,7 +774,7 @@ function getCurrentAuthUser(){
   return window.repSupabase?.auth ? repSupabase.auth.getUser() : Promise.resolve({data:{user:null}});
 }
 
-async function isPermanentRepFuelUser(){
+async function isPermanentGAINORYUser(){
   const {data:{user}}=await getCurrentAuthUser();
   return !!(user && !user.is_anonymous && user.email);
 }
@@ -802,7 +801,7 @@ async function updateAccountPanel(){
 
   if(permanent){
     $('accountStatusTitle').textContent='Permanent account';
-    $('accountStatusText').textContent='Your RepFuel account can be recovered on another device using your email and password.';
+    $('accountStatusText').textContent='Your GAINORY account can be recovered on another device using your email and password.';
     $('accountEmail').textContent=user.email||'—';
     $('saveStatus').textContent='☁ Account synced';
   }else{
@@ -859,9 +858,9 @@ async function sendAccountVerification(){
   if(!consent){showAccountError('accountFormError','Please confirm that you understand the account data storage.');return;}
 
   const {data:{user},error:userError}=await getCurrentAuthUser();
-  if(userError||!user){showAccountError('accountFormError','Your RepFuel session is unavailable. Refresh the page and try again.');return;}
+  if(userError||!user){showAccountError('accountFormError','Your GAINORY session is unavailable. Refresh the page and try again.');return;}
   if(!user.is_anonymous){
-    showAccountError('accountFormError','This RepFuel user already has a permanent account.');
+    showAccountError('accountFormError','This GAINORY user already has a permanent account.');
     return;
   }
 
@@ -880,14 +879,14 @@ async function sendAccountVerification(){
     const p=profile();
     p.name=name;
     p.consent=true;
-    localStorage.setItem('repfuel_profile',JSON.stringify(p));
+    localStorage.setItem('gainory_profile',JSON.stringify(p));
     await saveProfileToCloud(p);
 
     $('verificationEmail').textContent=email;
     $('createAccountForm').classList.add('hidden');
     $('verificationStep').classList.remove('hidden');
   }catch(e){
-    console.error('RepFuel account conversion failed:',e);
+    console.error('GAINORY account conversion failed:',e);
     showAccountError('accountFormError',explainAccountError(e));
   }finally{
     $('sendVerificationBtn').disabled=false;
@@ -906,7 +905,7 @@ async function resendAccountVerification(){
     if(error)throw error;
     $('verificationError').classList.add('hidden');
   }catch(e){
-    console.error('RepFuel verification resend failed:',e);
+    console.error('GAINORY verification resend failed:',e);
     showAccountError('verificationError',explainAccountError(e));
   }finally{$('resendVerificationBtn').disabled=false;}
 }
@@ -918,10 +917,10 @@ async function checkVerificationAndShowPassword(){
     const {error:refreshError}=await repSupabase.auth.refreshSession();
     if(refreshError)throw refreshError;
     const {data:{user},error}=await repSupabase.auth.getUser();
-    if(error||!user)throw new Error('Could not read your RepFuel account.');
+    if(error||!user)throw new Error('Could not read your GAINORY account.');
     const verified=!!user.email_confirmed_at && !user.is_anonymous;
     if(!verified){
-      showAccountError('verificationError','Verification is not visible yet. Open the latest email link, return to RepFuel, then press this button again.');
+      showAccountError('verificationError','Verification is not visible yet. Open the latest email link, return to GAINORY, then press this button again.');
       return;
     }
     accountSetupEmail=user.email||accountSetupEmail;
@@ -929,7 +928,7 @@ async function checkVerificationAndShowPassword(){
     $('passwordStep').classList.remove('hidden');
     $('accountPassword').focus();
   }catch(e){
-    console.error('RepFuel verification check failed:',e);
+    console.error('GAINORY verification check failed:',e);
     showAccountError('verificationError',explainAccountError(e));
   }finally{$('finishVerificationBtn').disabled=false;}
 }
@@ -953,20 +952,20 @@ async function setPermanentPassword(){
     const p=profile();
     p.name=$('accountName').value.trim()||p.name||'';
     p.consent=true;
-    localStorage.setItem('repfuel_profile',JSON.stringify(p));
+    localStorage.setItem('gainory_profile',JSON.stringify(p));
     await saveProfileToCloud(p);
 
     $('accountModal').classList.add('hidden');
     await updateAccountPanel();
     $('saveStatus').textContent='☁ Account synced';
-    alert('Your RepFuel account is ready. Your existing cloud workouts stay attached to this account.');
+    alert('Your GAINORY account is ready. Your existing cloud workouts stay attached to this account.');
   }catch(e){
-    console.error('RepFuel password setup failed:',e);
+    console.error('GAINORY password setup failed:',e);
     showAccountError('passwordError',explainAccountError(e));
   }finally{$('setPasswordBtn').disabled=false;}
 }
 
-async function signOutRepFuel(){
+async function signOutGAINORY(){
   if(!window.repSupabase?.auth)return;
   const {error}=await repSupabase.auth.signOut();
   if(error){alert(error.message);return;}
@@ -974,7 +973,7 @@ async function signOutRepFuel(){
   // Start a fresh anonymous session for continued guest use.
   const {error:anonError}=await repSupabase.auth.signInAnonymously();
   if(anonError){alert(anonError.message);return;}
-  localStorage.removeItem('repfuel_profile');
+  localStorage.removeItem('gainory_profile');
   location.reload();
 }
 
@@ -989,7 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('resendVerificationBtn')?.addEventListener('click', resendAccountVerification);
   $('finishVerificationBtn')?.addEventListener('click', checkVerificationAndShowPassword);
   $('setPasswordBtn')?.addEventListener('click', setPermanentPassword);
-  $('signOutBtn')?.addEventListener('click', signOutRepFuel);
+  $('signOutBtn')?.addEventListener('click', signOutGAINORY);
 
   $('accountPanel')?.addEventListener('click', (e) => {
     if (e.target === $('accountPanel')) hideAccountPanel();
@@ -1014,7 +1013,7 @@ $('clearHistory')?.addEventListener('click',async()=>{
 
   try{
     await deleteCloudHistory();
-    localStorage.removeItem('repfuel_history');
+    localStorage.removeItem('gainory_history');
     await renderHistory();
     $('saveStatus').textContent='☁ Cloud history cleared';
   }catch(e){
@@ -1025,7 +1024,7 @@ $('clearHistory')?.addEventListener('click',async()=>{
 $('editProfile')?.addEventListener('click',()=>{
   showAccountPanel();
 });
-async function showRepFuelSection(section){
+async function showGAINORYSection(section){
   const views=['workoutCard','progressCard','historyCard'];
   const summary=$('summaryCard');
 
@@ -1034,7 +1033,7 @@ async function showRepFuelSection(section){
   if(summary) summary.classList.add('hidden');
 
   // If the profile is not set up, keep the profile screen visible.
-  const p=JSON.parse(localStorage.getItem('repfuel_profile')||'null');
+  const p=JSON.parse(localStorage.getItem('gainory_profile')||'null');
   if(!p){
     $('profileCard').classList.remove('hidden');
     document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.section==='workout'));
@@ -1046,7 +1045,7 @@ async function showRepFuelSection(section){
     $('workoutCard').classList.remove('hidden');
   }else if(section==='progress'){
     $('progressCard').classList.remove('hidden');
-    await refreshRepFuelProgress();
+    await refreshGAINORYProgress();
   }else if(section==='history'){
     $('historyCard').classList.remove('hidden');
     await renderHistory();
@@ -1056,7 +1055,7 @@ async function showRepFuelSection(section){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-async function refreshRepFuelProgress(){
+async function refreshGAINORYProgress(){
   const rows=await fetchCloudHistory();
   renderProgressDashboard(rows);
   if($('progressWorkouts')) $('progressWorkouts').textContent=rows.length;
@@ -1067,7 +1066,7 @@ async function refreshRepFuelProgress(){
 }
 
 $('newWorkout').onclick=()=>{if(confirm('Reset the current workout? Saved cloud history will remain in your account.')) location.reload();};
-async function bootRepFuel(){
+async function bootGAINORY(){
   renderParts();renderExercises();
   if(window.repSupabase?.auth){
     try{
@@ -1082,5 +1081,5 @@ async function bootRepFuel(){
   await loadProfile();await renderHistory();
 }
 
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootRepFuel);
-else bootRepFuel();
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bootGAINORY);
+else bootGAINORY();

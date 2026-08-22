@@ -92,5 +92,5 @@ app.post('/api/workout-event', async (req, res) => {
 
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-initDb().then(() => app.listen(port, () => console.log(`RepFuel ${MODEL_VERSION} running on ${port}`)))
+initDb().then(() => app.listen(port, () => console.log(`GAINORY ${MODEL_VERSION} running on ${port}`)))
   .catch(err => { console.error(err); process.exit(1); });
