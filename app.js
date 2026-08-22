@@ -386,6 +386,7 @@ async function renderHistory(){
   if($('progressBest')) $('progressBest').textContent=Math.round(bestVolume).toLocaleString()+' kg';
 }
 
+const EXERCISE_IMAGE_MAP = {"barbell_bench_press":"assets/exercises/barbell_press.png","incline_barbell_bench_press":"assets/exercises/inclined_barwell_bench_press.png","dumbbell_bench_press":"assets/exercises/dumbel_bench_press.png","incline_dumbbell_press":"assets/exercises/inclined_dumbel_press.png","pec_deck_machine_fly":"assets/exercises/pecdeck_fly.png","cable_chest_fly":"assets/exercises/cabel_chest_fly.png","lat_pulldown":"assets/exercises/latt_pull_down.png","barbell_row":"assets/exercises/barbell_row.png","seated_cable_row":"assets/exercises/seated_cabel_row.png","t_bar_row":"assets/exercises/t_bar.png","straight_arm_pulldown":"assets/exercises/straight_arm_pulldown.png","dumbbell_pullover":"assets/exercises/dumbel_pullover.png","barbell_squat":"assets/exercises/barbell_squat.png","leg_press":"assets/exercises/leg_press.png","leg_extension":"assets/exercises/leg_extention.png","leg_curl":"assets/exercises/leg_curl.png","hip_thrust":"assets/exercises/hip_thrust.png","calf_raise":"assets/exercises/calf_raises.png","barbell_curl":"assets/exercises/barbell_curl.png","hammer_curl":"assets/exercises/hammer_curl.png","preacher_curl":"assets/exercises/preacher_curl.png","triceps_pushdown":"assets/exercises/tricep_pushdown.png","overhead_triceps_extension":"assets/exercises/overhead_tricep_extention.png","skull_crushers":"assets/exercises/skull_crusher.png","dumbbell_shoulder_press":"assets/exercises/dumbell_shoulder_press.png","dumbbell_lateral_raise":"assets/exercises/dumbell_lateral_raise.png","front_dumbbell_raise":"assets/exercises/front_dumbel_raise.png","reverse_pec_deck":"assets/exercises/reverse_pec_deck.png","face_pull":"assets/exercises/face_pull.png"};
 function findExerciseImage(e){const key=(e.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');return EXERCISE_IMAGE_MAP[key]||null;}
 function exerciseVisual(e){
   const image=findExerciseImage(e);
@@ -801,7 +802,7 @@ async function updateAccountPanel(){
 
   if(permanent){
     $('accountStatusTitle').textContent='Permanent account';
-    $('accountStatusText').textContent='Your RepFuel account can be recovered on another device using your email and password.';
+    $('accountStatusText').textContent='Your GAINORY account can be recovered on another device using your email and password.';
     $('accountEmail').textContent=user.email||'—';
     $('saveStatus').textContent='☁ Account synced';
   }else{
@@ -858,9 +859,9 @@ async function sendAccountVerification(){
   if(!consent){showAccountError('accountFormError','Please confirm that you understand the account data storage.');return;}
 
   const {data:{user},error:userError}=await getCurrentAuthUser();
-  if(userError||!user){showAccountError('accountFormError','Your RepFuel session is unavailable. Refresh the page and try again.');return;}
+  if(userError||!user){showAccountError('accountFormError','Your GAINORY session is unavailable. Refresh the page and try again.');return;}
   if(!user.is_anonymous){
-    showAccountError('accountFormError','This RepFuel user already has a permanent account.');
+    showAccountError('accountFormError','This GAINORY user already has a permanent account.');
     return;
   }
 
@@ -886,7 +887,7 @@ async function sendAccountVerification(){
     $('createAccountForm').classList.add('hidden');
     $('verificationStep').classList.remove('hidden');
   }catch(e){
-    console.error('RepFuel account conversion failed:',e);
+    console.error('GAINORY account conversion failed:',e);
     showAccountError('accountFormError',explainAccountError(e));
   }finally{
     $('sendVerificationBtn').disabled=false;
@@ -905,7 +906,7 @@ async function resendAccountVerification(){
     if(error)throw error;
     $('verificationError').classList.add('hidden');
   }catch(e){
-    console.error('RepFuel verification resend failed:',e);
+    console.error('GAINORY verification resend failed:',e);
     showAccountError('verificationError',explainAccountError(e));
   }finally{$('resendVerificationBtn').disabled=false;}
 }
@@ -917,10 +918,10 @@ async function checkVerificationAndShowPassword(){
     const {error:refreshError}=await repSupabase.auth.refreshSession();
     if(refreshError)throw refreshError;
     const {data:{user},error}=await repSupabase.auth.getUser();
-    if(error||!user)throw new Error('Could not read your RepFuel account.');
+    if(error||!user)throw new Error('Could not read your GAINORY account.');
     const verified=!!user.email_confirmed_at && !user.is_anonymous;
     if(!verified){
-      showAccountError('verificationError','Verification is not visible yet. Open the latest email link, return to RepFuel, then press this button again.');
+      showAccountError('verificationError','Verification is not visible yet. Open the latest email link, return to GAINORY, then press this button again.');
       return;
     }
     accountSetupEmail=user.email||accountSetupEmail;
@@ -928,7 +929,7 @@ async function checkVerificationAndShowPassword(){
     $('passwordStep').classList.remove('hidden');
     $('accountPassword').focus();
   }catch(e){
-    console.error('RepFuel verification check failed:',e);
+    console.error('GAINORY verification check failed:',e);
     showAccountError('verificationError',explainAccountError(e));
   }finally{$('finishVerificationBtn').disabled=false;}
 }
@@ -958,9 +959,9 @@ async function setPermanentPassword(){
     $('accountModal').classList.add('hidden');
     await updateAccountPanel();
     $('saveStatus').textContent='☁ Account synced';
-    alert('Your RepFuel account is ready. Your existing cloud workouts stay attached to this account.');
+    alert('Your GAINORY account is ready. Your existing cloud workouts stay attached to this account.');
   }catch(e){
-    console.error('RepFuel password setup failed:',e);
+    console.error('GAINORY password setup failed:',e);
     showAccountError('passwordError',explainAccountError(e));
   }finally{$('setPasswordBtn').disabled=false;}
 }
