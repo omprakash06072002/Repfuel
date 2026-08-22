@@ -761,11 +761,34 @@ async function loadProfile(){
   else{$('profileCard').classList.remove('hidden');$('workoutCard').classList.add('hidden');$('summaryCard').classList.add('hidden');$('historyCard').classList.add('hidden');}
 }
 
+let editingProfile = false;
+
+function openFitnessProfileEditor(){
+  const p=JSON.parse(localStorage.getItem('repfuel_profile')||'null') || profile();
+  applyProfileToForm(p);
+  editingProfile=true;
+  $('profileCard')?.classList.remove('hidden');
+  $('workoutCard')?.classList.add('hidden');
+  $('progressCard')?.classList.add('hidden');
+  $('summaryCard')?.classList.add('hidden');
+  $('historyCard')?.classList.add('hidden');
+  document.body.classList.add('profile-editing');
+  if($('saveProfile')) $('saveProfile').textContent='Save profile changes →';
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.section==='workout'));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function closeFitnessProfileEditor(){
+  editingProfile=false;
+  document.body.classList.remove('profile-editing');
+  if($('saveProfile')) $('saveProfile').textContent='Start my workout →';
+}
+
 $('saveProfile').onclick=async()=>{
   const p=profile();p.level=$('level').value;
   if(!p.age||!p.height||!p.weight){alert('Please enter age, height and weight.');return}
   localStorage.setItem('repfuel_profile',JSON.stringify(p));localStorage.setItem('repfuel_level',$('level').value);
-  const cloud=await saveProfileToCloud(p);$('saveStatus').textContent=cloud.ok?'☁ Profile synced':'Local profile';enterWorkout(p);
+  const cloud=await saveProfileToCloud(p);$('saveStatus').textContent=cloud.ok?'☁ Profile synced':'Local profile';closeFitnessProfileEditor();enterWorkout(p);
 };
 
 
@@ -817,12 +840,63 @@ function openCreateAccount(){
   $('createAccountForm')?.classList.remove('hidden');
   $('verificationStep')?.classList.add('hidden');
   $('passwordStep')?.classList.add('hidden');
+  $('loginStep')?.classList.add('hidden');
   $('accountFormError')?.classList.add('hidden');
   $('accountName')?.focus();
 }
 
 function closeCreateAccount(){
   $('accountModal')?.classList.add('hidden');
+  $('loginStep')?.classList.add('hidden');
+}
+
+function openLoginAccount(){
+  $('accountModal')?.classList.remove('hidden');
+  $('createAccountForm')?.classList.add('hidden');
+  $('verificationStep')?.classList.add('hidden');
+  $('passwordStep')?.classList.add('hidden');
+  $('loginStep')?.classList.remove('hidden');
+  $('loginError')?.classList.add('hidden');
+  $('loginEmail')?.focus();
+}
+
+function explainLoginError(error){
+  const message=String(error?.message||error||'');
+  const lower=message.toLowerCase();
+  if(lower.includes('invalid login credentials')) return 'The email or password is incorrect. Please check both and try again.';
+  if(lower.includes('email not confirmed')) return 'Please verify your email address before signing in.';
+  if(lower.includes('rate limit')) return 'Too many attempts. Please wait a little and try again.';
+  return message || 'Could not sign in. Please try again.';
+}
+
+async function signInExistingAccount(){
+  if(!window.repSupabase?.auth){showAccountError('loginError','Cloud account services are not available right now.');return;}
+  const email=$('loginEmail').value.trim();
+  const password=$('loginPassword').value;
+  if(!email || !email.includes('@')){showAccountError('loginError','Please enter a valid email address.');return;}
+  if(!password){showAccountError('loginError','Please enter your password.');return;}
+  $('loginBtn').disabled=true;
+  try{
+    const {data,error}=await repSupabase.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    if(!data?.user || data.user.is_anonymous) throw new Error('This login did not create a permanent account session.');
+    localStorage.removeItem('repfuel_profile');
+    $('loginStep')?.classList.add('hidden');
+    $('accountModal')?.classList.add('hidden');
+    $('saveStatus').textContent='☁ Account synced';
+    const cloud=await loadProfileFromCloud();
+    if(cloud){
+      enterWorkout(cloud);
+    }else{
+      await loadProfile();
+    }
+    await renderHistory();
+    await refreshRepFuelProgress();
+    await updateAccountPanel();
+  }catch(e){
+    console.error('GAINORY sign-in failed:',e);
+    showAccountError('loginError',explainLoginError(e));
+  }finally{$('loginBtn').disabled=false;}
 }
 
 function showAccountError(id,message){
@@ -989,6 +1063,11 @@ document.addEventListener('DOMContentLoaded', () => {
   $('resendVerificationBtn')?.addEventListener('click', resendAccountVerification);
   $('finishVerificationBtn')?.addEventListener('click', checkVerificationAndShowPassword);
   $('setPasswordBtn')?.addEventListener('click', setPermanentPassword);
+  $('loginBtn')?.addEventListener('click', signInExistingAccount);
+  $('openLoginBtn')?.addEventListener('click', openLoginAccount);
+  $('editFitnessProfileBtn')?.addEventListener('click',()=>{hideAccountPanel();openFitnessProfileEditor();});
+  $('editFitnessProfileBtnPermanent')?.addEventListener('click',()=>{hideAccountPanel();openFitnessProfileEditor();});
+  $('backToCreateBtn')?.addEventListener('click', openCreateAccount);
   $('signOutBtn')?.addEventListener('click', signOutRepFuel);
 
   $('accountPanel')?.addEventListener('click', (e) => {
