@@ -783,39 +783,23 @@ select {
 }
 
 </style>
-
 <style id="gainory-brand-safe">
-  /* GAINORY logo: preserve the original aspect ratio and show the complete mark. */
-  .topbar .gainory-logo{
-    width:42px!important;
-    height:42px!important;
-    min-width:42px!important;
-    min-height:42px!important;
-    flex:0 0 42px!important;
-    display:grid!important;
-    place-items:center!important;
-    background:#050908!important;
-    color:inherit!important;
-    overflow:hidden!important;
-    padding:0!important;
-    border:0!important;
-    border-radius:9px!important;
-  }
-  .topbar .gainory-logo img{
-    width:100%!important;
-    height:100%!important;
-    min-width:0!important;
-    min-height:0!important;
-    display:block!important;
-    object-fit:contain!important;
-    object-position:center!important;
-    border-radius:0!important;
-  }
+.topbar .gainory-logo{background:transparent!important;color:inherit!important;overflow:visible!important;padding:0!important;border:0!important;display:flex!important;align-items:center!important;justify-content:center!important;width:42px!important;height:42px!important;flex:0 0 42px!important}
+.topbar .gainory-logo svg{width:100%!important;height:100%!important;display:block!important;overflow:visible!important}
+@media (max-width:700px){.topbar .gainory-logo{width:36px!important;height:36px!important;flex-basis:36px!important}}
+.account-profile-btn{width:100%;margin-top:10px}
+.profile-editing .profile-box{border-color:rgba(163,255,18,.45);box-shadow:0 0 0 1px rgba(163,255,18,.08),0 12px 40px rgba(0,0,0,.18)}
 </style>
-
 </head>
 <body>
-<header class="topbar"><div class="brand"><div class="logo gainory-logo"><img src="assets/gainory-mark.png" alt="GAINORY"></div><div><strong>GAINORY</strong><span>workout intelligence · model 2.1.0</span></div></div><nav class="main-nav"><button type="button" class="nav-item active" data-section="workout" onclick="showRepFuelSection('workout')">⚒ Workout</button><button type="button" class="nav-item" data-section="progress" onclick="showRepFuelSection('progress')">▥ Progress</button><button type="button" class="nav-item" data-section="history" onclick="showRepFuelSection('history')">◷ History</button></nav><div class="top-actions"><div id="saveStatus" class="status">Local mode</div><button id="editProfile" class="top-btn">Profile</button></div></header>
+<header class="topbar"><div class="brand"><div class="logo gainory-logo" aria-label="GAINORY logo">
+<svg viewBox="0 0 100 100" role="img" aria-label="GAINORY G-arrow logo">
+  <defs><linearGradient id="gainoryLime" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D9FF12"/><stop offset="1" stop-color="#9DFF00"/></linearGradient></defs>
+  <path d="M77 20 A36 36 0 1 0 78 65" fill="none" stroke="#F4F4F2" stroke-width="16" stroke-linecap="round"/>
+  <path d="M20 50 A36 36 0 0 0 77 65" fill="none" stroke="url(#gainoryLime)" stroke-width="16" stroke-linecap="round"/>
+  <path d="M47 50 H79 V20" fill="none" stroke="url(#gainoryLime)" stroke-width="15" stroke-linecap="square" stroke-linejoin="miter"/>
+  <path d="M79 20 L79 58" fill="none" stroke="url(#gainoryLime)" stroke-width="15" stroke-linecap="square"/>
+</svg></div><div><strong>GAINORY</strong><span>workout intelligence · model 2.1.0</span></div></div><nav class="main-nav"><button type="button" class="nav-item active" data-section="workout" onclick="showRepFuelSection('workout')">⚒ Workout</button><button type="button" class="nav-item" data-section="progress" onclick="showRepFuelSection('progress')">▥ Progress</button><button type="button" class="nav-item" data-section="history" onclick="showRepFuelSection('history')">◷ History</button></nav><div class="top-actions"><div id="saveStatus" class="status">Local mode</div><button id="editProfile" class="top-btn">Profile</button></div></header>
 <main>
 <section id="profileCard" class="card hero-card">
   <div class="hero-copy"><p class="eyebrow">GAINORY · Model 2.1.0</p><h1>Track your workout.<br><span>Let GAINORY handle the math.</span></h1><p class="hero-sub">Log sets in real time, see your training volume, and get a research-anchored calorie estimate without carrying a notebook around the gym.</p></div>
@@ -916,7 +900,7 @@ select {
 </section>
 </main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=2.1.0-gainory"></script>
 <div id="accountPanel" class="account-panel hidden">
   <div class="account-card">
     <div class="account-head">
@@ -932,11 +916,14 @@ select {
       <div><strong id="accountStatusTitle">Guest account</strong><p id="accountStatusText">Your workouts are currently linked to this browser's anonymous GAINORY user.</p></div>
     </div>
     <div class="account-actions" id="guestAccountActions">
+      <button type="button" class="secondary account-profile-btn" id="editFitnessProfileBtn">✎ Edit fitness profile</button>
       <button type="button" class="primary" id="createAccountBtn">Create permanent account</button>
+      <button type="button" class="secondary large" id="openLoginBtn">Sign in to existing account</button>
       <p class="account-note">Creating an account keeps your existing GAINORY user ID, so your cloud workouts remain attached to you.</p>
     </div>
     <div class="account-actions hidden" id="permanentAccountActions">
       <div class="account-email-row"><span>Email</span><strong id="accountEmail">—</strong></div>
+      <button type="button" class="secondary account-profile-btn" id="editFitnessProfileBtnPermanent">✎ Edit fitness profile</button>
       <button type="button" class="ghost danger" id="signOutBtn">Sign out</button>
     </div>
   </div>
@@ -960,6 +947,16 @@ select {
       <button type="button" class="primary large" id="sendVerificationBtn">Send verification email →</button>
       <p class="account-note">After verifying your email, return to GAINORY and finish setting a password from your Profile.</p>
       <div id="accountFormError" class="form-error hidden"></div>
+    </div>
+
+    <div id="loginStep" class="hidden">
+      <h3>Sign in to your account</h3>
+      <p class="muted">Use the email and password you created for GAINORY. Your cloud profile and workout history will load automatically on this device.</p>
+      <label>Email <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com"></label>
+      <label>Password <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password"></label>
+      <button type="button" class="primary large" id="loginBtn">Sign in →</button>
+      <button type="button" class="ghost large" id="backToCreateBtn">Create a new account instead</button>
+      <div id="loginError" class="form-error hidden"></div>
     </div>
 
     <div id="verificationStep" class="hidden">
